@@ -1,111 +1,55 @@
-function SEQRun
+function task_smsl(cfg)
+
 %%% updated by Andrew Meier for SEQ-DBS project 2021/3/29
+%%% Adapted for OR by Alan Bush 2021/04/01
 
-%change to countdown from 45 instead of counting up
-
-%Script should be located in following directory on experimental computer:
-%C:\speechres\SEQ-DBS\code\scripts
+% Speech Motor Sequence Learning taks for intraoperative experiments
 
 %% Set parameters
 
-%Set Stop/Start Keys
-stopkey = KbName('q');  %q to quit
-startkey = KbName('space');  %space to move to next trial
+groupNum = cfg.GROUP_NUM;
+experiment_phase = cfg.EXP_PHASE;
+subjName = cfg.SUBJECT;
+subjDir = cfg.PATH_LOG;
 
-%Set recording parameters
-Fs = 44100;
-bits = 16;
-recObj = audiorecorder(Fs,bits,1);
-
-% Set font sizes
 InstructionFontSize = 70;
 StimFontSize = 200;
-FixationFontSize = 280;
 go_trial_duration_ms = 1500; %%% time in milliseconds from onset of  GO cue to disappearance of GO cue
 stoptrial_duration_ms = 2000; % time in milliseconds from onset of false GO cue to disappearance of STOP cue
 show_stoptrial_visual_cue = 0; % if true, show a visual cue (e.g. red X) in addition to playing the buzzer for stop trials
-    stoptrial_text = 'X';
-    stoptrial_color = [1 0 0]; %%% RGB from 0 to 1; will get multiplied by WhiteIndex
+%FixationFontSize = 280;
+%stoptrial_text = 'X';
+%stoptrial_color = [1 0 0]; %%% RGB from 0 to 1; will get multiplied by WhiteIndex
 
 %For jitter time:
 minJitter = 500;
 maxJitter = 1000;
 
 show_countdown = 0; % if true, show in the top right corner how many trials remain 
-ngroups = 5; % number of unique stimulus groups (subject groups)
 ntrials_between_breaks = 45; % have subject take a break after this many trials
 start_cue_audio_file = 'stim\beep.wav'; % audio to play as START cue
 stoptrial_audio_file = 'stim\mixkit-game-show-buzz-in-3090.wav'; % audio to play on STOP trials
 
+% messages
 first_instruction_message = ['On each trial, SILENTLY read and listen to the word. \n \n', ...
     'When you hear the beep, say the target word\nas QUICKLY and ACCURATELY as possible.'];
 stoptrial_instruction_message = ['If you hear the buzzer, \n' ...
     'STOP saying the target word.']; 
 break_message = 'Take a break!\nClick to continue.';
 
-%%
-cd C:\speechres\SEQ-DBS\
-addpath C:\speechres\SEQ-DBS\code\scripts
-addpath C:\speechres\SEQ-DBS\code\stim   
-addpath C:\speechres\SEQ-DBS\code\specFiles  
+% script initialization tones
+AudioBeepTone = 500;
+AudioBeepDuration = 0.2;
 
-prompt = {['Subject ID'],['Group Number (1-5)',]...
-    [sprintf('Experiment Phase?\n(0 = Familiarization, 1 = Training, 2 = Testing)')]};
-dlgtitle = 'Experimenter Input';
-dims = [1 50];
-definput = {'DBSSEQ_Pilot1','1', '1'};
-answer = inputdlg(prompt,dlgtitle,dims,definput);
+%% Initializaing psychtoolbox and celanup structures
+onCleanupTasks = cell(20,1); %creating cleanup cell array container to enforce cleanup order
 
-subjName = answer{1};
-groupNum = str2num(answer{2});
-switch str2num(answer{3})
-    case 0
-        experiment_phase = 'Familiarization';
-    case 1
-        experiment_phase = 'Training';
-    case 2
-        experiment_phase = 'Test';
-    otherwise
-        error('Experiment Phase must be one of: 0 = Familiarization, 1 = Training, 2 = Testing') 
-end
+%% Initializing log files
 
-rng('shuffle');     % makes sure that rng seed isn't always the same
-
-%check screen & OpenGL, other variable tests--------------------------------------------
-
-clc; % Clear Matlab/Octave window
-AssertOpenGL; % check for Opengl compatibility, abort otherwise
-Screen('Preference', 'SkipSyncTests', 1);  %1 will force Psychtoolbox to continue 
-
-% Check if all parameters input into GUI
-if size(subjName,2)==0
-    error('Must provide required input parameters');
-elseif size(groupNum,2)==0
-    error('Must provide required input parameters');
-end
-
-try
-    foo = groupNum < 1;
-catch
-    error('group number must be integer');
-end
-
-%Test for groupNum in appropriate range
-if (groupNum > ngroups) || (groupNum < 1) 
-    error (['group number must be between 1 and ', num2str(ngroups)])
-end
-
-
-
-% Start timer for whole run
-    runStart = tic;
-
-%Create data directory for subject-----------------------------------------
-if ~exist(strcat('sub-', subjName), 'dir')
-  mkdir(strcat('sub-', subjName));
-end
-
-subjDir = strcat('sub-', subjName);
+%opening events file
+eventFile = fopen(cfg.EVENT_FILENAME, 'a');  % Appending mode
+onCleanupTasks{19} = onCleanup(@() fclose(eventFile));
+fprintf(eventFile,'onset\tduration\tsample\ttrial_type\tstim_file\tvalue\tevent_code\n'); %BIDS event file in system time coord
 
 %% create log file----------------------------------------------------------
 % Implementing the log functionality: 
@@ -113,11 +57,17 @@ subjDir = strcat('sub-', subjName);
 % log file is. Save the index of this trial to a variable, and then at the
 % start of the main loop switch 1:numTrial to var:num Trials.
 
-logFileName = strcat(subjName,'_', num2str(groupNum),'_',experiment_phase, '_log.txt');
-logFileName = fullfile(subjDir, logFileName);
-if ~exist(logFileName) % if first run, create a log file
-    logFile = fopen(logFileName, 'at');
+% trialFileName = strcat(subjName,'_', num2str(groupNum),'_',experiment_phase, '_log.txt');
+% trialFileName = fullfile(subjDir, trialFileName);
+
+trialFileName = cfg.TRIAL_FILENAME;
+if ~isfile(trialFileName) % if first run, create a log file
+    trialFile = fopen(trialFileName, 'at');
+    onCleanupTasks{18} = onCleanup(@() fclose(trialFile));
     curTrial = 1;
+    %randomizing trials
+    trial_list_all_blocks = stimListRandomizer_DBS(cfg);
+    writetable(table(trial_list_all_blocks),cfg.SPEC_FILENAME,'Delimiter','\t','FileType','text');
 else % if log present, ask user if they would like to continue from the last run, or start over
     progress = 1;
     while progress
@@ -125,27 +75,28 @@ else % if log present, ask user if they would like to continue from the last run
         resp = input(prompt,'s');
         if resp == 'Y' || resp == 'y'
             progress = 0;
-            logFile = fopen(logFileName, 'r');
-            trials = textscan(logFile, '%d %d');
+            trialFile = fopen(trialFileName, 'r');
+            trials = textscan(trialFile, '%d %d');
             curTrial = trials{1}(end);
-            logFile = fopen(logFileName, 'at');
+            trialFile = fopen(trialFileName, 'at');
+            onCleanupTasks{17} = onCleanup(@() fclose(trialFile));
         elseif resp == 'N' || resp == 'n'
             prompt = ('This run has already been started for this subject. Would you like to start this run over? [Y/N]: ');
             % delete contents of log file? or keep them?
             resp = input(prompt,'s');
             if resp == 'Y' || resp == 'y'
-            progress = 0;
-            
-            logFile = fopen(logFileName, 'at');
-            curTrial = 1;
+              progress = 0;
+              trialFile = fopen(trialFileName, 'at');
+              onCleanupTasks{16} = onCleanup(@() fclose(trialFile));
+              curTrial = 1;
             elseif resp == 'N' || resp == 'n'
                 disp('Program ended.')
                 return
             else
                 disp('Invalid answer.')
                 disp('Program ended.')
+                return
             end
-
         else
             disp('Invalid answer.')
             disp('Program ended.')
@@ -154,13 +105,26 @@ else % if log present, ask user if they would like to continue from the last run
     end
 end
 
+
 %% file handling----------------------------------------------------------
+
+%writetable(dbTrials,[filepath filesep name '-rand' ext],'Delimiter','\t','FileType','text')
 
 % import stim presentation order
 %%% specfile columns specify: stim index, condition, is_stoptrial, stop trial latency
-specFileName = strcat(answer{1},'_',answer{2},'_',experiment_phase);
-specFile = strcat('specFiles\',specFileName,'.txt');
- [stimNums, stimConditions, stopTrials, stopLatencies] = textread(specFile,'%u %u %u %u'); 
+% specFileName = strcat(answer{1},'_',answer{2},'_',experiment_phase);
+% specFile = strcat('specFiles\',specFileName,'.txt');
+
+trial_list = readtable(cfg.SPEC_FILENAME,'Delimiter','\t','FileType','text');
+stimNums = trial_list.stimNums;
+stimConditions = trial_list.stimConditions;
+stopTrials = trial_list.stopTrials;
+stopLatencies = trial_list.stopLatencies;
+
+% specFile = cfg.SPEC_FILENAME;
+% [stimNums, stimConditions, stopTrials, stopLatencies] = textscan(specFile,'%u %u %u %u'); 
+
+
 %[stimNums] = textread(specFile,'%u %u');  %remove waits from specFile and use jitter in code instead
 ntrials = size(stimNums,1); 
 stimList = textread('stim\StimNumList.txt','%s'); %import code for num -> pseudoword translation
@@ -170,6 +134,110 @@ for ii = 1:ntrials % get trials in the randomized order specified by stimNums
     trials.word{ii} = stimList{stimNums(ii)}; 
 end
 first_stop_trial = find(trials.is_stoptrial,1); % for displaying stoptrial instructions during familiarization
+
+
+%% Initializing psychtoolbox
+fprintf('Initializing psychtoolbox at %s for subject %s, %s task, session %s, run %i\n\n',datestr(now,'HH:MM:SS'),cfg.SUBJECT,cfg.TASK,cfg.SESSION_LABEL,cfg.RUN_ID);
+PsychDefaultSetup(2);
+
+% Initializing Keyboard
+fprintf('Initializing Keyboard...'); 
+if isempty(cfg.KEYBOARD_ID)
+    fprintf('\nNo keyboard selected, using default. Choose KEYBOARD_ID from this table:\n'); 
+    % Detect keyboards attached to system
+    devices = struct2table(PsychHID('Devices'));  
+    disp(devices);
+end
+
+%Set Stop/Start Keys
+KbName('UnifyKeyNames')
+stopkey = KbName('ESCAPE');
+startkey = KbName('space');  %space to move to next trial
+
+% Initialize Sound
+fprintf('Initializing Sound...\n'); 
+InitializePsychSound; 
+
+% getting audio device id
+pa_devices = struct2table(PsychPortAudio('GetDevices'));
+if isempty(cfg.AUDIO_ID) || ~ismember(cfg.AUDIO_ID,pa_devices.DeviceIndex)
+    fprintf('\nNo audio device was selected, using default. Choose AUDIO_ID from this table:\n'); 
+    disp(pa_devices);
+else
+    fprintf('The following audio device was selected');
+    disp(pa_devices(pa_devices.DeviceIndex==cfg.AUDIO_ID,:));
+end
+pa_mode = 1; %1 == sound playback only; 
+pa_reqlatencyclass = 1; % Try to get the lowest latency that is possible under the constraint of reliable playback.  
+pa_freq = []; %loading default freq for device
+pa_channels = 2; %playing as stereo, converting to mono by hardware connector
+pa_handle = PsychPortAudio('Open', cfg.AUDIO_ID, pa_mode, pa_reqlatencyclass, pa_freq, pa_channels);
+onCleanupTasks{18} = onCleanup(@() PsychPortAudio('Close', pa_handle));
+
+% loading audio and verifying output frequency and resampling
+pa_handle_status = PsychPortAudio('GetStatus', pa_handle);
+pa_handle_Fs = pa_handle_status.SampleRate;
+
+%construction initialization beeps
+AudioBeep = MakeBeep(AudioBeepTone, AudioBeepDuration, pa_handle_Fs)*cfg.AUDIO_AMP;
+AudioBeep = [AudioBeep;AudioBeep];
+
+% Initialize Screen
+fprintf('Initializing Screen...'); 
+AssertOpenGL()
+onCleanupTasks{16} = onCleanup(@() Priority(0));
+Screen('Preference','Verbosity',3); %screen
+PsychImaging('PrepareConfiguration'); % Open window with default settings:
+screens = Screen('Screens');
+if isempty(cfg.SCREEN_ID)
+    cfg.SCREEN_ID = max(screens);
+end
+white = WhiteIndex(cfg.SCREEN_ID);
+black = BlackIndex(cfg.SCREEN_ID);
+if cfg.SKIP_SYNC_TEST
+  fprintf('skipping sync test');
+	Screen('Preference', 'VisualDebugLevel', 0);
+  Screen('Preference', 'SkipSyncTests', 1);
+	Screen('Preference', 'SuppressAllWarnings', 1);
+end
+if ~isempty(cfg.CONSERVE_VRAM_MODE)
+    Screen('Preference','ConserveVRAM',cfg.CONSERVE_VRAM_MODE);
+end
+
+[ptb_window, ptb_window_rect] = Screen('OpenWindow', cfg.SCREEN_ID, black);
+onCleanupTasks{15} = onCleanup(@() Screen('Close', ptb_window));
+[screenXpixels, screenYpixels] = Screen('WindowSize', ptb_window);
+
+
+%% Embedding de-indetified metadata into pairs of label and value triggers
+log_metadata(cfg,eventFile);
+
+%testing triggers
+PsychPortAudio('FillBuffer', pa_handle, AudioBeep);
+pa_repetitions = 1; 
+pa_when = 0;
+pa_waitForStart = 1;
+for i = 1:5
+    BeepStartTime = PsychPortAudio('Start', pa_handle, pa_repetitions, pa_when, pa_waitForStart);
+    log_event(eventFile, cfg.DIGOUT, BeepStartTime, 0.25, [], [], [], 255, 'Trigger test',1);
+    WaitSecs('YieldSecs',0.25);
+    log_event(eventFile, cfg.DIGOUT, [], 0.25, [], [], [], 0, 'Trigger test',0);
+    WaitSecs('YieldSecs',0.25);
+end
+
+%%
+% cd C:\speechres\SEQ-DBS\
+% addpath C:\speechres\SEQ-DBS\code\scripts
+% addpath C:\speechres\SEQ-DBS\code\stim   
+% addpath C:\speechres\SEQ-DBS\code\specFiles  
+
+rng('shuffle');     % makes sure that rng seed isn't always the same
+
+%check screen & OpenGL, other variable tests--------------------------------------------
+
+%Create data directory for subject-----------------------------------------
+
+
 
 disp('Number of trials in run: '); % display the total number of trials
 disp(ntrials);
@@ -332,7 +400,7 @@ try  %for error handling
         % trial completed, update log file
         %logStr =  sprintf('%d %d \n', curTrial, 1);
         logStr =  sprintf('%d %d %.3f %.3f \n', itrial, 1, actualWaitTime, waitTimeDiff);  %record trial completion + jitter time delay
-        fprintf(logFile,'%s',logStr);
+        fprintf(trialFile,'%s',logStr);
         curTrial = curTrial + 1;
 
         DrawFormattedText(stimwindow, '+', 'center', 'center', WhiteIndex(stimwindow)); 
@@ -345,8 +413,8 @@ try  %for error handling
             %update log file
             %movefile(logFileName,subjDir);
             logStr =  sprintf('%d %d \n', curTrial, 0);
-            fprintf(logFile,'%s',logStr);
-            fclose(logFile);
+            fprintf(trialFile,'%s',logStr);
+            fclose(trialFile);
             
             fclose('all');
             Screen('CloseAll');
@@ -360,23 +428,23 @@ try  %for error handling
     end
     
     %Calculate, display, and print total run duration in mins, close everything
-    fclose(logFile);
+    fclose(trialFile);
     disp('Total run duration (mins):');
     runTimeSecs = toc(runStart);
     runTimeMins = runTimeSecs/60
     logStr =  sprintf('Total run duration: %.3f mins', runTimeMins);
-    logFile = fopen(logFileName, 'at');
-    fprintf(logFile,'%s',logStr);
-    fclose(logFile);
+    trialFile = fopen(trialFileName, 'at');
+    fprintf(trialFile,'%s',logStr);
+    fclose(trialFile);
     Screen('CloseAll');
     
 catch ME   %if error occured during trial
     Screen('CloseAll');
     fclose('all');
     logStr =  sprintf('%d %d \n', curTrial, 0);
-    logFile = fopen(logFileName, 'at');
-    fprintf(logFile,'%s',logStr);
-    fclose(logFile);
+    trialFile = fopen(trialFileName, 'at');
+    fprintf(trialFile,'%s',logStr);
+    fclose(trialFile);
     rethrow(ME)
 
 end

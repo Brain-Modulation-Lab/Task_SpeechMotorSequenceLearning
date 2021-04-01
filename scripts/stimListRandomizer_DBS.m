@@ -18,7 +18,11 @@
 %Code developed by Hilary Miller and Frank Guenther
 %%% modified for DBS by Andrew Meier 2021-3-31
 
-function stimListRandomizer_DBS(subj_name, group_num, experiment_phase, nblocks) 
+function trial_list_all_blocks = stimListRandomizer_DBS(cfg) 
+
+group_num = cfg.GROUP_NUM;
+experiment_phase = cfg.EXP_PHASE_NUM;
+subj_name = cfg.SUBJECT;
 
 % for training ONLY, specify the range of latencies between fixation cross appearance and STOP signal
 training_stoptrial_latencies_ms = [100:50:400]; % milliseconds
@@ -27,18 +31,21 @@ training_stoptrial_latencies_ms = [100:50:400]; % milliseconds
 familiarization_stoptrial_latency_ms = 200; % milliseconds 
 testing_stoptrial_latency_ms = 200; % milliseconds
 
-addpath C:\speechres\SEQ-DBS\code\specFiles  
+%addpath C:\speechres\SEQ-DBS\code\specFiles  
 
 % select experimental phase, load stim index data
 if experiment_phase == 0
     exp_phase_name = 'Familiarization'; 
-    stimtable = readtable('C:\speechres\SEQ-DBS\stim_group_lists_familiarization.xlsx');
+    stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_group_lists_familiarization.xlsx']);
+    nblocks = 1;
 elseif experiment_phase == 1
     exp_phase_name = 'Training';
-    stimtable = readtable('C:\speechres\SEQ-DBS\stim_group_lists_training.xlsx');
+    stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_group_lists_training.xlsx']);
+    nblocks = 1;
 elseif experiment_phase == 2
-     exp_phase_name = 'Test';
-    stimtable = readtable('C:\speechres\SEQ-DBS\stim_group_lists_test.xlsx');
+    exp_phase_name = 'Test';
+    stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_group_lists_test.xlsx']);
+    nblocks = 1;
 else
     error('experiment_phase must equal 0 (familiarization), 1 (practice), or 2 (testing)')
 end
@@ -67,8 +74,9 @@ end
 trialList = [stim_inds_selected, stimtable.condition, stimtable.stop_trial];
 
 %Set output file name
-specFileName = strcat(subj_name, '_', num2str(group_num), '_', exp_phase_name);
-specFile = strcat('C:\speechres\SEQ-DBS\code\specFiles\',specFileName,'.txt');
+% specFileName = strcat(subj_name, '_', num2str(group_num), '_', exp_phase_name);
+% specFile = strcat('C:\speechres\SEQ-DBS\code\specFiles\',specFileName,'.txt');
+specFile = cfg.SPEC_FILENAME;
 
 % Next, randomly permute the trials and check to see if they
 % meet all criteria for consecutive trials. If not, then redo
@@ -140,17 +148,21 @@ switch exp_phase_name
         trial_list_all_blocks(is_stoptrial,4) = testing_stoptrial_latency_ms; % assign latencies to stop trials
 end
    
-    %% save output into the specfile
-fileID = fopen(specFile,'w');
+trial_list_all_blocks = array2table(trial_list_all_blocks);
+trial_list_all_blocks.Properties.VariableNames = {'stimNums', 'stimConditions', 'stopTrials', 'stopLatencies'};
 
-for i = 1:size(trial_list_all_blocks,1)
-    fprintf(fileID,'%u %u %u %u',trial_list_all_blocks(i,:)); % stim index, condition, is_stoptrial, stop trial latency
-    if i < size(trial_list_all_blocks,1)
-        fprintf(fileID,'\n');
-    end
-end
 
-% % % fprintf(fileID,'%u %u',trial_list_all_blocks);
-
-fclose(fileID);
+%     %% save output into the specfile
+% fileID = fopen(specFile,'w');
+% 
+% for i = 1:size(trial_list_all_blocks,1)
+%     fprintf(fileID,'%u %u %u %u',trial_list_all_blocks(i,:)); % stim index, condition, is_stoptrial, stop trial latency
+%     if i < size(trial_list_all_blocks,1)
+%         fprintf(fileID,'\n');
+%     end
+% end
+% 
+% % % % fprintf(fileID,'%u %u',trial_list_all_blocks);
+% 
+% fclose(fileID);
 % % % numTrialsPerBlock % Print number of trials
