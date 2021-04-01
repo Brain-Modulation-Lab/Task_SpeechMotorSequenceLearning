@@ -1,0 +1,111 @@
+###Description of this script
+##  This script allows for scoring of accuracy on trials for the SEQ-FTD experiment. The script will create 
+##  and open a TextGrid accompanying each sound file in a directory. The TextGrid contains tiers for overall accuracy, 
+## onset/code cluster accuracy, and error type, and appends the results to a text file across all trials for that subject 
+## (called "accuracy-log.txt", and will be written to the same directory holding your sound files (designated wd$ below). 
+##  
+##  To run this script, you will have to have a bunch of sound files in a directory identified as sub-subName$ (enter below). 
+###End of description
+
+clearinfo
+
+## Set subject, file type, and desired tiers (opens GUI)
+
+form Select subject, file type, and tiers
+	#sentence wd C:\speechres\SEQ-FTD\sub-SEQ_Pilot2
+	#sentence File_name_or_initial_substring SEQ_Pilot2_2_Test
+        sentence SubName SEQ_Pilot2
+	sentence File_extension wav
+	sentence Tier(s) WordAccuracy SeqAccuracy ErrorType OnsetAccuracy OnsetErrorType CodaAccuracy CodaErrorType 
+endform
+
+wd$ = "C:\speechres\SEQ-FTD\" + "sub-" + subName$ + "\"
+#outDir$ = "C:\speechres\SEQ-FTD\" + "sub-" + subName$" + "\"
+#sound_file_extension$ = ".wav"
+
+
+##  Make a list of all the sound files in the directory we're using/number of files (numFiles):
+strings = Create Strings as file list: "wavList", wd$ + "*.wav"
+numFiles = Get number of strings
+
+##  Write header to log file:
+#logfile$ = wd$ + subName$ + "-analysis-log.txt"
+header_row$ = "File Name" + tab$ + "Word Accuracy" + tab$ + "Error Type" + tab$ + "Onset Accuracy" + tab$ + "Onset Error Type" + tab$ + "Coda Accuracy" + tab$ + "Coda Error Type" + newline$
+header_row$ > 'wd$''subName$'-analysis-log.txt
+
+#writeFileLine: wd$ + subName$ + "-log.txt", "Name", tab$, "Word Accuracy", tab$, "Error Type", tab$, "Onset Accuracy", tab$, "Onset Error Type", tab$, "Coda Accuracy", tab$, "Coda Error Type" + newline$
+
+# Set up a "for" loop that will iterate once for every file in the list:
+select Strings wavList
+for ifile to numFiles
+	
+	#    Query the file-list to get the first filename from it, then read that file in:
+	filename$ = Get string... ifile 
+	sound = Read from file... 'wd$''filename$'
+	
+	#Make a variable  "soundname$" that will be equal to the filename minus the ".wav" extension:
+	soundname$ = selected$ ("Sound", 1)
+	
+	#Read in corresponding TextGrid (inspired by Jill Thorson & Jen Hay):
+	## Look for grid, if found, open it, otherwise make new one
+     	
+	full$ = "'wd$''soundname$'.TextGrid"
+     		if fileReadable (full$)
+  		Read from file... 'full$'
+  		Rename... 'soundname$'
+     		
+		else
+  		select Sound 'soundname$'
+  		To TextGrid... "'tier$'"
+     		endif
+	
+	#Read from file... 'wd$''soundname$'.TextGrid
+	#grid = To TextGrid: "Analysis", ""
+	select Sound 'soundname$'
+	plusObject: "TextGrid " + soundname$
+	View & Edit
+
+    	#Annotate the TextGrid while script paused
+    	#plus Sound 'short$'
+     	#Edit
+     	pauseScript: "Click Continue when you're done scoring this file"
+     	#minus Sound 'short$'
+     	Write to text file... 'wd$''soundname$'.TextGrid
+
+	selectObject: "TextGrid " + soundname$
+
+		##   Now we query the TextGrid to get the label from each tier, 
+		##   storing each value in a variable and appending it to the log.txt file. 
+		select TextGrid 'soundname$'
+		wordAcc$ = Get label of interval... 1 1
+		errorType$ = Get label of interval... 2 1
+		onsetAcc$ = Get label of interval... 3 1
+		onsetType$ = Get label of interval... 4 1
+		codaAcc$ = Get label of interval... 5 1
+		codaType$ = Get label of interval... 6 1
+
+	fileappend "'wd$''subName$'-analysis-log.txt" 'soundname$''tab$''wordAcc$''tab$''errorType$''tab$''onsetAcc$''tab$''onsetType$''tab$''codaAcc$''tab$''codaType$''newline$'
+
+     #  Code has now extracted all labels for all tiers for the current sound object and
+     #  textgrid, and written all the appropriate values to our log file.  
+     #  Now close any objects we no longer need, and end for loop
+	
+	select TextGrid 'soundname$'
+	Save as text file: wd$ + soundname$ + ".TextGrid"
+	select TextGrid 'soundname$'
+    	plus Sound 'soundname$'
+	Remove
+	clearinfo
+	select Strings wavList
+endfor
+
+select Strings list
+Remove
+clearinfo
+
+print You're finished! 'numFiles' files scored. Great job! :) 
+
+## by Hilary Miller, 2021 for SEQ-FTD study, BU
+## hilarym@bu.edu
+## Parts inspired by Jill Thorson and Liz Heller Murray
+
