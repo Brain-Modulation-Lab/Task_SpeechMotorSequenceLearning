@@ -15,7 +15,7 @@ cfg.SCREEN_SYNC_COLOR = [0 0 0];
   
 % Paths and configurations
 cfg.PATH_TASK = '~/git/Task_SpeechMotorSequenceLearning';
-cfg.PATH_RAWDATA = '~/Data/DBS/sourcedata'; %sourdata root folder 
+cfg.PATH_SOURCEDATA = '~/Data/DBS/sourcedata'; %sourdata root folder 
 cfg.AUDIO_ID = []; 
 cfg.SCREEN_ID = 0; % prefered screen 
 
@@ -85,11 +85,11 @@ beep off
 %% Constructing and checking paths and getting next trial run id
 
 %checking data path
-pathSub = [cfg.PATH_RAWDATA filesep 'sub-' cfg.SUBJECT];
+pathSub = [cfg.PATH_SOURCEDATA filesep 'sub-' cfg.SUBJECT];
 pathSubSes = [pathSub filesep 'ses-' cfg.SESSION_LABEL];
 pathSubSesDataType = [pathSubSes filesep cfg.DATA_TYPE];
-if ~isfolder(cfg.PATH_RAWDATA)
-    error('rawdata folder %s does not exist',cfg.PATH_RAWDATA)
+if ~isfolder(cfg.PATH_SOURCEDATA)
+    error('rawdata folder %s does not exist',cfg.PATH_SOURCEDATA)
 end
 if ~isfolder(pathSub)
     fprintf('Creating subject folder %s \n',pathSub)

@@ -18,20 +18,13 @@
 %Code developed by Hilary Miller and Frank Guenther
 %%% modified for DBS by Andrew Meier 2021-3-31
 
-function trial_list_all_blocks = stimListRandomizer_DBS(cfg) 
+function trials = stimListRandomizer_DBS(cfg) 
+
+% makes sure that rng seed isn't always the same
+rng('shuffle');  
 
 group_num = cfg.GROUP_NUM;
 experiment_phase = cfg.EXP_PHASE_NUM;
-subj_name = cfg.SUBJECT;
-
-% for training ONLY, specify the range of latencies between fixation cross appearance and STOP signal
-training_stoptrial_latencies_ms = [100:50:400]; % milliseconds
-
-% for familiarization and testing, set a fixed stoptrial latency
-familiarization_stoptrial_latency_ms = 200; % milliseconds 
-testing_stoptrial_latency_ms = 200; % milliseconds
-
-%addpath C:\speechres\SEQ-DBS\code\specFiles  
 
 % select experimental phase, load stim index data
 if experiment_phase == 0
@@ -74,8 +67,6 @@ end
 trialList = [stim_inds_selected, stimtable.condition, stimtable.stop_trial];
 
 %Set output file name
-% specFileName = strcat(subj_name, '_', num2str(group_num), '_', exp_phase_name);
-% specFile = strcat('C:\speechres\SEQ-DBS\code\specFiles\',specFileName,'.txt');
 specFile = cfg.SPEC_FILENAME;
 
 % Next, randomly permute the trials and check to see if they
@@ -137,32 +128,23 @@ is_stoptrial = logical(trial_list_all_blocks(:,3));
 trial_list_all_blocks(:,4) = zeros(ntrials_total,1); % add column for stop latency
 switch exp_phase_name
     case 'Training' % test range of stop latencies for training
-        n_stop_latencies = length(training_stoptrial_latencies_ms); 
-        stop_latencies_expanded = repmat(training_stoptrial_latencies_ms, 1, total_stoptrials); % expand so we can sample from them
+        n_stop_latencies = length(cfg.training_stoptrial_latencies_ms); 
+        stop_latencies_expanded = repmat(cfg.training_stoptrial_latencies_ms, 1, total_stoptrials); % expand so we can sample from them
         stop_latency_inds = randperm(length(stop_latencies_expanded), total_stoptrials); % one STOP latency for each STOP trial
         stop_latencies_by_trial = stop_latencies_expanded(stop_latency_inds);
         trial_list_all_blocks(is_stoptrial,4) = stop_latencies_by_trial; % assign latencies to stop trials
     case 'Familiarization' % use fixed stop latency for familiarization
-        trial_list_all_blocks(is_stoptrial,4) = familiarization_stoptrial_latency_ms; % assign latencies to stop trials
+        trial_list_all_blocks(is_stoptrial,4) = cfg.familiarization_stoptrial_latency_ms; % assign latencies to stop trials
     case 'Test' % use fixed stop latency for familiarization
-        trial_list_all_blocks(is_stoptrial,4) = testing_stoptrial_latency_ms; % assign latencies to stop trials
+        trial_list_all_blocks(is_stoptrial,4) = cfg.testing_stoptrial_latency_ms; % assign latencies to stop trials
 end
    
-trial_list_all_blocks = array2table(trial_list_all_blocks);
-trial_list_all_blocks.Properties.VariableNames = {'stimNums', 'stimConditions', 'stopTrials', 'stopLatencies'};
+%% organizing output in trials table
+trials = array2table(trial_list_all_blocks);
+trials.Properties.VariableNames = {'stimnum', 'stim_conditions', 'is_stoptrial', 'stop_latency_ms'};
 
+stimList = readtable([cfg.PATH_TASK filesep 'stim' filesep 'StimNumList.txt'],'ReadVariableNames',false); %import code for num -> pseudoword translation
+for ii = 1:height(trials) % get trials in the randomized order specified by stimNums
+    trials.word{ii} = stimList{trials.stimnum(ii),1}; 
+end
 
-%     %% save output into the specfile
-% fileID = fopen(specFile,'w');
-% 
-% for i = 1:size(trial_list_all_blocks,1)
-%     fprintf(fileID,'%u %u %u %u',trial_list_all_blocks(i,:)); % stim index, condition, is_stoptrial, stop trial latency
-%     if i < size(trial_list_all_blocks,1)
-%         fprintf(fileID,'\n');
-%     end
-% end
-% 
-% % % % fprintf(fileID,'%u %u',trial_list_all_blocks);
-% 
-% fclose(fileID);
-% % % numTrialsPerBlock % Print number of trials
