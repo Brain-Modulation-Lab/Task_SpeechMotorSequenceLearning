@@ -6,20 +6,22 @@
 cfg.SESSION_LABEL = 'test'; %type of session ('test', 'training', 'preop', 'intraop')
 if ~isfield(cfg,'SUBJECT')
   cfg.SUBJECT = ''; %subject identifier
+  cfg.GROUP_NUM = [];
 end
 cfg.DATA_TYPE = 'task'; %BIDS data type 'beh' for behavioral and task data. 
 
 % rectangle for photodiodo synchronization
 cfg.SCREEN_SYNC_RECT = [0 0 1 1]; %rectangle used for screen sync
-cfg.SCREEN_SYNC_COLOR = [0 0 0];
-  
+cfg.SCREEN_SYNC_COLOR = [255 255 255];
+
 % Paths and configurations
 cfg.PATH_TASK = '~/git/Task_SpeechMotorSequenceLearning';
 cfg.PATH_SOURCEDATA = '~/Data/DBS/sourcedata'; %sourdata root folder 
 cfg.AUDIO_ID = []; 
 cfg.SCREEN_ID = 0; % prefered screen 
 
-cfg.AUDIO_AMP = 1;
+cfg.AUDIO_AMP = 1; %Audio amplitude in linear scale
+cfg.SYNC_BEEPS = 0;
 cfg.KEYBOARD_ID = []; % prefered keyboard 
 cfg.SKIP_SYNC_TEST = 1; %should screen test be skipped (use only for debugging)
 cfg.CONSERVE_VRAM_MODE = []; %kPsychUseBeampositionQueryWorkaround
@@ -28,17 +30,13 @@ cfg.CONSERVE_VRAM_MODE = []; %kPsychUseBeampositionQueryWorkaround
 cfg.TASK = 'SMSL'; % name of current task
 cfg.TASK_VERSION = 1; % version number for task
 cfg.TASK_FUNCTION = './scripts/task_smsl.m';
-
 cfg.N_GROUPS = 5; % number of unique stimulus groups (subject groups)
-
-% cfg.nBlocks = 1; %number of blocks to run
-% cfg.taks_time = 10; %duration of each trial
 
 prompt = {'Subject ID','Session','Run (leave empty for new run)','Group Number (1-5)',...
     sprintf('Experiment Phase?\n(0 = Familiarization, 1 = Training, 2 = Testing)')};
 dlgtitle = 'Experimenter Input';
 dims = [1 50];
-definput = {cfg.SUBJECT,cfg.SESSION_LABEL,'','1','1'};
+definput = {cfg.SUBJECT,cfg.SESSION_LABEL,'',num2str(cfg.GROUP_NUM),'1'};
 answer = inputdlg(prompt,dlgtitle,dims,definput);
 
 cfg.SUBJECT = answer{1};
@@ -149,7 +147,6 @@ commandwindow
 try
   cd('./scripts');
   task_smsl(cfg);
-  cd('..');
 catch e
 	fprintf('The identifier was:\n%s',e.identifier);
 	fprintf('There was an error! The message was:\n%s',e.message);

@@ -33,56 +33,78 @@ function task_smsl(cfg)
 %                             for Cash Lab rig it is a structure with fields
 %                               cfg.DIGOUT.portObj - io64 object
 %                               cfg.DIGOUT.portAddress - address of port
-%   cfg.EXP_PHASE           str, {'Familiarization', 'Training', 'Test'}
-%   
+%   cfg.EXP_PHASE           str, {'Familiarization', 'Training', 'Test'} 
+%   cfg.SYNC_BEEPS          bool, should synchronization beeps be played at
+%                           the beggining of the task?
 %
 % OUTPUT: Log file with all output to the console, Trial file containing
 % description of each trial in the run and Event file containing precise
 % timing of all events in the run. 
-
-
 
 %% Set parameters
 
 experiment_phase = cfg.EXP_PHASE;
 subjName = cfg.SUBJECT;
 
-InstructionFontSize = 70;
-StimFontSize = 200;
-go_trial_duration_ms = 1500; %%% time in milliseconds from onset of  GO cue to disappearance of GO cue
-stoptrial_duration_ms = 2000; % time in milliseconds from onset of false GO cue to disappearance of STOP cue
-show_stoptrial_visual_cue = 0; % if true, show a visual cue (e.g. red X) in addition to playing the buzzer for stop trials
-spacerVisualAudio = 1000; %time from orthographic representation to audio onset
-visualStimDuration = 1450; %duration of the orthographic representation 
+%Options
+ntrials_between_breaks = 45; % have subject take a break after this many trials
 
-%For jitter time:
-minJitter = 500;
-maxJitter = 1000;
+%Times      
+go_trial_duration_ms = 1500; %%% time in milliseconds from onset of  GO cue to enabling keypress for next trial 
+stoptrial_duration_ms = 2000; % time in milliseconds from onset of false GO cue to enabling keypress for next trial
+spacerVisualAudio_ms = 1000; %time from orthographic representation to audio onset
+visualStimDuration_ms = 1450; %duration of the orthographic representation 
+interTrialGapDuration_ms = 1000; % enforced gap between key press and start of next trial
+minJitter_ms = 500; %min time between end visual stim and start of go signal in ms
+maxJitter_ms = 1000; %max time between end visual stim and start of go signal in ms
 
 % for training ONLY, specify the range of latencies between fixation cross appearance and STOP signal
-cfg.training_stoptrial_latencies_ms = [100:50:400]; % milliseconds
+cfg.training_stoptrial_latencies_ms = [200:100:500]; % milliseconds
 
 % for familiarization and testing, set a fixed stoptrial latency
 cfg.familiarization_stoptrial_latency_ms = 200; % milliseconds 
 cfg.testing_stoptrial_latency_ms = 200; % milliseconds
 
-ntrials_between_breaks = 45; % have subject take a break after this many trials
-start_cue_audio_file = [cfg.PATH_TASK filesep 'stim' filesep 'beep.wav']; % audio to play as START cue
-stoptrial_audio_file = [cfg.PATH_TASK filesep 'stim' filesep 'mixkit-game-show-buzz-in-3090.wav']; % audio to play on STOP trials
+%Fonts
+instructionFontSize = 70;
+stimFontSize = 200;
+fixcrossFontSize = 100;
+stopFontSize = 100;
+goFontSize = 100;
+
+%color
+fixcrossColor = [255,255,255];
+goColor = [255,255,255];
+stopColor = [255,255,255];
+
+%text
+fixcrossText = '+';
+goText = '+';
+stopText = '+';
 
 % messages
-first_instruction_message = ['On each trial, SILENTLY read and listen to the word. \n \n', ...
+first_instruction_message = ['On each trial, SILENTLY read and listen to the word. \n\n', ...
     'When you hear the beep, say the target word\nas QUICKLY and ACCURATELY as possible.'];
 stoptrial_instruction_message = ['If you hear the buzzer, \n' ...
     'STOP saying the target word.']; 
 break_message = 'Take a break!\nClick to continue.';
 thanks_message = 'END OF TASK\nThank you!';
 
+%Audio options
+
+% Go cue % audio to play as START cue
+start_cue_audio_file = [cfg.PATH_TASK filesep 'stim' filesep 'beep.wav']; 
+GoBeepAmp = 1;
+
+% Stop cue % audio to play on STOP trials
+stoptrial_audio_file = [cfg.PATH_TASK filesep 'stim' filesep 'mixkit-game-show-buzz-in-3090.wav']; 
+StopBeepAmp = 0.5;
+
 % script initialization tones
 InitBeepTone = 500;
 InitBeepDuration = 0.2;
-InitBeepAmp = 0.2;
-   
+InitBeepAmp = 0.2 * cfg.SYNC_BEEPS;
+
 %trigger codes
 TRIG_FIXCROSS = 1;
 TRIG_AUDITORY = 2;
@@ -93,76 +115,12 @@ TRIG_KEYPRESS = 32;
 TRIG_ITG = 64;
 TRIG_ESC = 128;
 
-
 %% Initializaing psychtoolbox and celanup structures
 onCleanupTasks = cell(20,1); %creating cleanup cell array container to enforce cleanup order
+onCleanupTasks{20} = onCleanup(@() cd(cfg.PATH_TASK));
+onCleanupTasks{1} = onCleanup(@() fprintf('\nRUN ID: %i\n',cfg.RUN_ID));
+
 rng('shuffle');  
-%% Initializing log files
-
-%opening events file
-eventFile = fopen(cfg.EVENT_FILENAME, 'a');  % Appending mode
-onCleanupTasks{19} = onCleanup(@() fclose(eventFile));
-fprintf(eventFile,'onset\tduration\tsample\ttrial_type\tstim_file\tvalue\tevent_code\n'); %BIDS event file in system time coord
-
-%% create log file----------------------------------------------------------
-% Implementing the log functionality: 
-% The if-esle below will check what the last trial of the
-% log file is. Save the index of this trial to a variable, and then at the
-% start of the main loop switch 1:numTrial to var:num Trials.
-
-trialFileName = cfg.TRIAL_FILENAME;
-if ~isfile(trialFileName) % if first run, create a log file
-    trialFile = fopen(trialFileName, 'at');
-    onCleanupTasks{18} = onCleanup(@() fclose(trialFile));
-    curTrial = 1;
-    %randomizing trials 
-    trials_spec = stimListRandomizer_DBS(cfg);
-    writetable(trials_spec,cfg.SPEC_FILENAME,'Delimiter','\t','FileType','text');
-else % if log present, ask user if they would like to continue from the last run, or start over
-    progress = 1;
-    while progress
-        prompt = ('This run has already been started for this subject.  Do you want to continue where you left off? [Y/N]: ');
-        resp = input(prompt,'s');
-        if resp == 'Y' || resp == 'y'
-            keyboard
-            progress = 0;
-            trialFile = fopen(trialFileName, 'r');
-            trials_spec = textscan(trialFile, '%d %d');
-            curTrial = trials_spec{1}(end);
-            trialFile = fopen(trialFileName, 'at');
-            onCleanupTasks{17} = onCleanup(@() fclose(trialFile));
-        elseif resp == 'N' || resp == 'n'
-            prompt = ('This run has already been started for this subject. Would you like to start this run over? [Y/N]: ');
-            % delete contents of log file? or keep them?
-            resp = input(prompt,'s');
-            if resp == 'Y' || resp == 'y'
-              	progress = 0;
-                trialFile = fopen(trialFileName, 'at');
-                onCleanupTasks{16} = onCleanup(@() fclose(trialFile));
-                curTrial = 1;
-                %randomizing trials 
-                trial_list_all_blocks = stimListRandomizer_DBS(cfg);
-                writetable(table(trial_list_all_blocks),cfg.SPEC_FILENAME,'Delimiter','\t','FileType','text');
-            elseif resp == 'N' || resp == 'n'
-                disp('Program ended.')
-                return
-            else
-                disp('Invalid answer.')
-                disp('Program ended.')
-                return
-            end
-        else
-            disp('Invalid answer.')
-            disp('Program ended.')
-            return
-        end
-    end
-end
-
-%% loading trial specification file----------------------------------------------------------
-trials_spec = readtable(cfg.SPEC_FILENAME,'Delimiter','\t','FileType','text');
-first_stop_trial = find(trials_spec.is_stoptrial,1); % for displaying stoptrial instructions during familiarization
-ntrials = height(trials_spec);
 
 %% Initializing psychtoolbox
 fprintf('Initializing psychtoolbox at %s for subject %s, %s task, session %s, run %i\n\n',datestr(now,'HH:MM:SS'),cfg.SUBJECT,cfg.TASK,cfg.SESSION_LABEL,cfg.RUN_ID);
@@ -204,7 +162,7 @@ pa_reqlatencyclass = 1; % Try to get the lowest latency that is possible under t
 pa_freq = []; %loading default freq for device
 pa_channels = 2; %playing as stereo, converting to mono by hardware connector
 pa_handle = PsychPortAudio('Open', cfg.AUDIO_ID, pa_mode, pa_reqlatencyclass, pa_freq, pa_channels);
-onCleanupTasks{18} = onCleanup(@() PsychPortAudio('Close', pa_handle));
+onCleanupTasks{19} = onCleanup(@() PsychPortAudio('Close', pa_handle));
 
 % loading audio and verifying output frequency and resampling
 pa_handle_status = PsychPortAudio('GetStatus', pa_handle);
@@ -224,7 +182,7 @@ if pa_handle_Fs ~= beep_Fs
     beep_Fs = pa_handle_Fs;
 end
 % converting to stereo row vectors 
-go_beep = [go_beep(:,1)';go_beep(:,1)'];
+go_beep = [go_beep(:,1)';go_beep(:,1)'] .* GoBeepAmp .* cfg.AUDIO_AMP;
 go_beep_duration = size(go_beep,2) ./ beep_Fs;
 
 %preload buzz audio 
@@ -237,22 +195,21 @@ if pa_handle_Fs ~= stop_buzzer_Fs
     stop_buzzer_Fs = pa_handle_Fs;
 end
 % converting to stereo row vectors 
-stop_buzzer = [stop_buzzer(:,1)';stop_buzzer(:,1)'];
+stop_buzzer = [stop_buzzer(:,1)';stop_buzzer(:,1)'] .* StopBeepAmp .* cfg.AUDIO_AMP;
 stop_buzzer_duration = size(go_beep,2) ./ stop_buzzer_Fs;
 
 %% Initialize Screen
 
 fprintf('Initializing Screen...'); 
 AssertOpenGL()
-onCleanupTasks{16} = onCleanup(@() Priority(0));
+onCleanupTasks{18} = onCleanup(@() Priority(0));
 Screen('Preference','Verbosity',3); %screen
-PsychImaging('PrepareConfiguration'); % Open window with default settings:
+%PsychImaging('PrepareConfiguration'); % Open window with default settings:
 screens = Screen('Screens');
 if isempty(cfg.SCREEN_ID)
     cfg.SCREEN_ID = max(screens);
 end
-white = WhiteIndex(cfg.SCREEN_ID);
-black = BlackIndex(cfg.SCREEN_ID);
+
 if cfg.SKIP_SYNC_TEST
   fprintf('skipping sync test');
 	Screen('Preference', 'VisualDebugLevel', 0);
@@ -263,11 +220,82 @@ if ~isempty(cfg.CONSERVE_VRAM_MODE)
     Screen('Preference','ConserveVRAM',cfg.CONSERVE_VRAM_MODE);
 end
 
-[ptb_window, ptb_window_rect] = Screen('OpenWindow', cfg.SCREEN_ID, black);
-onCleanupTasks{15} = onCleanup(@() Screen('Close', ptb_window));
+[ptb_window, ptb_window_rect] = Screen('OpenWindow', cfg.SCREEN_ID, BlackIndex(cfg.SCREEN_ID));
+onCleanupTasks{17} = onCleanup(@() Screen('Close', ptb_window));
 [screenXpixels, screenYpixels] = Screen('WindowSize', ptb_window);
 
+white = WhiteIndex(ptb_window);
+black = BlackIndex(ptb_window);
+
 flipSyncState=0;
+
+%% Initializing log files
+
+%opening events file
+eventFile = fopen(cfg.EVENT_FILENAME, 'a');  % Appending mode
+onCleanupTasks{16} = onCleanup(@() fclose(eventFile));
+fprintf(eventFile,'onset\tduration\tsample\ttrial_type\tstim_file\tvalue\tevent_code\n'); %BIDS event file in system time coord
+
+%% create log file----------------------------------------------------------
+% Implementing the log functionality: 
+% The if-esle below will check what the last trial of the
+% log file is. Save the index of this trial to a variable, and then at the
+% start of the main loop switch 1:numTrial to var:num Trials.
+
+trialFileName = cfg.TRIAL_FILENAME;
+if ~isfile(trialFileName) % if first run, create a log file
+    trialFile = fopen(trialFileName, 'at');
+    onCleanupTasks{15} = onCleanup(@() fclose(trialFile));
+    startTrial = 1;
+    %randomizing trials 
+    trials_spec = stimListRandomizer_DBS(cfg);
+    writetable(trials_spec,cfg.SPEC_FILENAME,'Delimiter','\t','FileType','text');
+else % if log present, ask user if they would like to continue from the last run, or start over
+    prompt = ('\nThis run has already been started for this subject.  Do you want to continue where you left off? [Y/N]: ');
+    resp = input(prompt,'s');
+    if resp == 'Y' || resp == 'y'
+        trialFile = fopen(trialFileName, 'r');
+        trials_log = textscan(trialFile, '%d %d %.3f %.3f');
+        fclose(trialFile);
+        if isempty(trials_log{1})
+          startTrial = 1;
+        else
+          startTrial = trials_log{1}(end);
+        end
+        fprintf("Starting from trial %i\n",startTrial);
+        trialFile = fopen(trialFileName, 'at');
+        onCleanupTasks{14} = onCleanup(@() fclose(trialFile));
+    elseif resp == 'N' || resp == 'n'
+        prompt = ('\nThis run has already been started for this subject. Would you like to start this run over? [Y/N]: ');
+        % delete contents of log file? or keep them?
+        resp = input(prompt,'s');
+        if resp == 'Y' || resp == 'y'
+            trialFile = fopen(trialFileName, 'at');
+            onCleanupTasks{13} = onCleanup(@() fclose(trialFile));
+            startTrial = 1;
+            %randomizing trials 
+            trials_spec = stimListRandomizer_DBS(cfg);
+            writetable(trials_spec,cfg.SPEC_FILENAME,'Delimiter','\t','FileType','text');
+        elseif resp == 'N' || resp == 'n'
+            disp('Program ended.')
+            return
+        else
+            disp('Invalid answer.')
+            disp('Program ended.')
+            return
+        end
+    else
+        disp('Invalid answer.')
+        disp('Program ended.')
+        return
+    end
+end
+
+%% loading trial specification file----------------------------------------------------------
+trials_spec = readtable(cfg.SPEC_FILENAME,'Delimiter','\t','FileType','text');
+first_stop_trial = find(trials_spec.is_stoptrial,1); % for displaying stoptrial instructions during familiarization
+ntrials = height(trials_spec);
+trials_spec.stim_conditions = num2str(trials_spec.stim_conditions);
 
 %% Embedding de-indetified metadata into pairs of label and value triggers
 log_metadata(cfg,eventFile);
@@ -294,7 +322,7 @@ WaitSecs(1.0);
 
 %% experiment-------------------------------------------------------------
 
-  Screen('TextSize', ptb_window, InstructionFontSize);
+  Screen('TextSize', ptb_window, instructionFontSize);
   Screen('TextFont', ptb_window, char('Arial'));
 
   % Do dummy calls
@@ -303,7 +331,7 @@ WaitSecs(1.0);
   GetSecs;
 
   %Set Instructions    
-  DrawFormattedText(ptb_window, first_instruction_message, 'center', 'center', WhiteIndex(ptb_window));
+  DrawFormattedText(ptb_window, first_instruction_message, 'center', 'center', white, [], [], [], 1.5);
   flipSyncState = ~flipSyncState;
   Screen('FillRect', ptb_window, cfg.SCREEN_SYNC_COLOR .* flipSyncState, cfg.SCREEN_SYNC_RECT);
   [~, welcomeMesageTime] = Screen('Flip', ptb_window);
@@ -320,17 +348,7 @@ WaitSecs(1.0);
       clear onCleanupTasks
       return
   end
-
-  
-  %Fixation cross
-  DrawFormattedText(ptb_window, '+', 'center', 'center', WhiteIndex(ptb_window)); 
-  flipSyncState = ~flipSyncState;
-  Screen('FillRect', ptb_window, cfg.SCREEN_SYNC_COLOR .* flipSyncState, cfg.SCREEN_SYNC_RECT);
-  [~, fixCrossTime] = Screen('Flip', ptb_window);
-  code = TRIG_FIXCROSS + TRIG_ITG;
-  log_event(eventFile, cfg.DIGOUT, fixCrossTime, [], [], [], [], code, 'Inter Trial Gap', flipSyncState);  
-  
-  WaitSecs(1.000);
+ 
 
   fprintf('Running Subject %s\n', subjName)
 
@@ -338,13 +356,12 @@ WaitSecs(1.0);
 % -------------------------- MAIN TRIAL LOOP ---------------------------------
 % ----------------------------------------------------------------------------
 startRunTime = GetSecs();
-for itrial = curTrial:ntrials
-
-    trialCountdown = num2str(ntrials-itrial); %calculate number of trials left in run
-
+nextTrialRequested = 1; %only one space bar transitions from instructions to begging of experiment
+for itrial = startTrial:ntrials
+  
     if (mod(itrial,ntrials_between_breaks) == 0) && (itrial ~= ntrials)  % Break after every X trials, but not on the last
-        Screen('TextSize', ptb_window, InstructionFontSize); %return to smaller text size (from larger fixation +)
-        DrawFormattedText(ptb_window, break_message, 'center', 'center', white);
+        Screen('TextSize', ptb_window, instructionFontSize); %return to smaller text size (from larger fixation +)
+        DrawFormattedText(ptb_window, break_message, 'center', 'center', white, [], [], [], 1.5);
 
         % Display break message
         flipSyncState = ~flipSyncState;
@@ -363,16 +380,17 @@ for itrial = curTrial:ntrials
           return
         end
 
-        %Fixation cross
-        DrawFormattedText(ptb_window, '+', 'center', 'center', WhiteIndex(ptb_window)); 
-        flipSyncState = ~flipSyncState;
-        Screen('FillRect', ptb_window, cfg.SCREEN_SYNC_COLOR .* flipSyncState, cfg.SCREEN_SYNC_RECT);
-        [~, fixCrossTime] = Screen('Flip', ptb_window);
-        code = TRIG_FIXCROSS + TRIG_ITG;
-        log_event(eventFile, cfg.DIGOUT, fixCrossTime, [], [], [], [], code, 'Inter Trial Gap', flipSyncState);  
-        WaitSecs(1.000);
     end
 
+    %Fixation cross
+    Screen('TextSize', ptb_window, fixcrossFontSize);
+    DrawFormattedText(ptb_window, fixcrossText, 'center', 'center', fixcrossColor, [], [], [], 1.5); 
+    flipSyncState = ~flipSyncState;
+    Screen('FillRect', ptb_window, cfg.SCREEN_SYNC_COLOR .* flipSyncState, cfg.SCREEN_SYNC_RECT);
+    [~, fixCrossTime] = Screen('Flip', ptb_window);
+    code = TRIG_FIXCROSS;
+    log_event(eventFile, cfg.DIGOUT, fixCrossTime, [], [], [], [], code, 'Fixation Cross', flipSyncState);  
+      
     %preload stim information------------------------------------------------
     stim = char(trials_spec.word{itrial});  %Load word for this trial
     numString = num2str(trials_spec.stimnum(itrial)); %insert stimulus index here
@@ -386,7 +404,7 @@ for itrial = curTrial:ntrials
     else
         stop_latency_string = '';
     end
-    disp(['Trial # ', num2str(curTrial), ' ........ ', 'stim = ''', char(trials_spec.word{itrial}), ''' ..............',...
+    disp(['Trial # ', num2str(itrial), ' ........ ', 'stim = ''', char(trials_spec.word{itrial}), ''' ..............',...
         ' STOP trial = ', num2str(trials_spec.is_stoptrial(itrial)), stop_latency_string]); 
     disp(audioStimPath);        
 
@@ -394,25 +412,31 @@ for itrial = curTrial:ntrials
     [audStim, stimFs]  = psychwavread(audioStimPath);
     if pa_handle_Fs ~= stimFs % verifying output frequency and resampling
         audStim=resample(audStim,pa_handle_Fs,stimFs);
+        stimFs = pa_handle_Fs;
     end
-    audStim = [audStim(:,1)';audStim(:,1)']; % converting to stereo row vectors 
+    audStim = [audStim(:,1)';audStim(:,1)'] .* cfg.AUDIO_AMP; % converting to stereo row vectors 
     WordDuration = size(audStim,2)/stimFs;
     PsychPortAudio('FillBuffer', pa_handle, audStim);
 
     %Start trial on key press (any key)------------------------------
-    [keyPressTime, keyCode] = KbWait(cfg.KEYBOARD_ID, 2);
-    log_event(eventFile, cfg.DIGOUT, keyPressTime, [], [], [], [], TRIG_KEYPRESS, 'Key Press', flipSyncState);
-    if any(ismember(find(keyCode),keyCodeEscape))
-        log_event(eventFile, cfg.DIGOUT, [], [], [], [], [], TRIG_ESC, 'Escape', flipSyncState);
-        fprintf("Escape key detected, ending run.\n");
-        clear onCleanupTasks
-        return
+    if nextTrialRequested
+      itgStartTime = GetSecs();
+      nextTrialRequested = 0;
+    else
+      [itgStartTime, keyCode] = KbWait(cfg.KEYBOARD_ID, 2);
+      log_event(eventFile, cfg.DIGOUT, itgStartTime, [], [], [], [], TRIG_KEYPRESS + TRIG_ITG, 'Key Press', flipSyncState);
+      if any(ismember(find(keyCode),keyCodeEscape))
+          log_event(eventFile, cfg.DIGOUT, [], [], [], [], [], TRIG_ESC, 'Escape', flipSyncState);
+          fprintf("Escape key detected, ending run.\n");
+          clear onCleanupTasks
+          return
+      end
     end
 
     % if we're about to show the first STOP trial during the familiarization phase, give STOP trial instructions
     if  strcmp(experiment_phase,'Familiarization') && itrial == first_stop_trial
-        Screen('TextSize', ptb_window, InstructionFontSize); %return to smaller text size (from larger fixation +)
-        DrawFormattedText(ptb_window, stoptrial_instruction_message, 'center', 'center', WhiteIndex(ptb_window));
+        Screen('TextSize', ptb_window, instructionFontSize); %return to smaller text size (from larger fixation +)
+        DrawFormattedText(ptb_window, stoptrial_instruction_message, 'center', 'center', white, [], [], [], 1.5);
 
         flipSyncState = ~flipSyncState;
         Screen('FillRect', ptb_window, cfg.SCREEN_SYNC_COLOR .* flipSyncState, cfg.SCREEN_SYNC_RECT);
@@ -429,27 +453,27 @@ for itrial = curTrial:ntrials
         end
         
         %Fixation cross
-        DrawFormattedText(ptb_window, '+', 'center', 'center', WhiteIndex(ptb_window)); 
+        Screen('TextSize', ptb_window, fixcrossFontSize);        
+        DrawFormattedText(ptb_window, fixcrossText, 'center', 'center', fixcrossColor .* white, [], [], [], 1.5); 
         flipSyncState = ~flipSyncState;
         Screen('FillRect', ptb_window, cfg.SCREEN_SYNC_COLOR .* flipSyncState, cfg.SCREEN_SYNC_RECT);
-        [~, fixCrossTime] = Screen('Flip', ptb_window);
+        [~, itgStartTime] = Screen('Flip', ptb_window);
         code = TRIG_FIXCROSS + TRIG_ITG;
-        log_event(eventFile, cfg.DIGOUT, fixCrossTime, [], [], [], [], code, 'Inter Trial Gap', flipSyncState);  
-        WaitSecs(1.000);
+        log_event(eventFile, cfg.DIGOUT, itgStartTime, [], [], [], [], code, 'Inter Trial Gap', flipSyncState);  
         
     end            
 
-    %Display orthographic stim and play audio
-    Screen('TextSize', ptb_window, StimFontSize); %return to stim text size (from larger fixation +)
-    DrawFormattedText(ptb_window, stim, 'center', 'center', white);
+    %Display orthographic stim and play audio after ITG
+    Screen('TextSize', ptb_window, stimFontSize); %return to stim text size (from larger fixation +)
+    DrawFormattedText(ptb_window, stim, 'center', 'center', white, [], [], [], 1.5);
     flipSyncState = ~flipSyncState;
     Screen('FillRect', ptb_window, cfg.SCREEN_SYNC_COLOR .* flipSyncState, cfg.SCREEN_SYNC_RECT);
-    [~, visualStimTime] = Screen('Flip', ptb_window);
+    [~, visualStimTime] = Screen('Flip', ptb_window, itgStartTime + interTrialGapDuration_ms/1000);
     code = TRIG_VISUAL;
-    log_event(eventFile, cfg.DIGOUT, visualStimTime, visualStimDuration/1000, [], trials_spec.stim_conditions(itrial), trials_spec.word(itrial), code, 'Visual Stim Onset', flipSyncState);  
+    log_event(eventFile, cfg.DIGOUT, visualStimTime, visualStimDuration_ms/1000, [], trials_spec.stim_conditions(itrial), trials_spec.word{itrial}, code, 'Visual Stim Onset', flipSyncState);  
 
     pa_repetitions = 1; 
-    pa_when = visualStimTime + spacerVisualAudio/1000;
+    pa_when = visualStimTime + spacerVisualAudio_ms/1000;
     pa_waitForStart = 1; %get time of audio start
     audioStimTime = PsychPortAudio('Start', pa_handle, pa_repetitions, pa_when, pa_waitForStart);
     code = TRIG_VISUAL + TRIG_AUDITORY;
@@ -460,10 +484,11 @@ for itrial = curTrial:ntrials
     log_event(eventFile, cfg.DIGOUT, [], [], [], trials_spec.stim_conditions(itrial), [], code, 'Audio Stim Offset', flipSyncState);
     
     %Return to fixation cross during jitter wait time
-    DrawFormattedText(ptb_window, '+', 'center', 'center', WhiteIndex(ptb_window)); %
+    Screen('TextSize', ptb_window, fixcrossFontSize);    
+    DrawFormattedText(ptb_window, fixcrossText, 'center', 'center', fixcrossColor, [], [], [], 1.5); %
     flipSyncState = ~flipSyncState;
     Screen('FillRect', ptb_window, cfg.SCREEN_SYNC_COLOR .* flipSyncState, cfg.SCREEN_SYNC_RECT);
-    [~, fixCrossTime] = Screen('Flip', ptb_window, visualStimTime + visualStimDuration/1000);
+    [~, fixCrossTime] = Screen('Flip', ptb_window, visualStimTime + visualStimDuration_ms/1000);
     code = TRIG_FIXCROSS;
     log_event(eventFile, cfg.DIGOUT, fixCrossTime, [], [], trials_spec.stim_conditions(itrial), [], code, 'Fixation Cross', flipSyncState);  
 
@@ -471,7 +496,7 @@ for itrial = curTrial:ntrials
     PsychPortAudio('FillBuffer', pa_handle, go_beep);
 
     %Set Jitter time for this trial
-    waitTime = round((maxJitter-minJitter).*rand(1,1) + minJitter); % set jittered waittime
+    waitTime = round((maxJitter_ms-minJitter_ms).*rand(1,1) + minJitter_ms); % set jittered waittime
     waitTime = waitTime / 1000; % convert ms to s
 
     % Generate the GO prompt (green + simultaneous with beep)
@@ -483,15 +508,25 @@ for itrial = curTrial:ntrials
     code = TRIG_FIXCROSS + TRIG_GO;
     log_event(eventFile, cfg.DIGOUT, audioGoTime, go_beep_duration, [], trials_spec.stim_conditions(itrial), [], code, 'Go Beep', flipSyncState);
 
+    %Return to fixation cross during jitter wait time
+    Screen('TextSize', ptb_window, goFontSize);    
+    DrawFormattedText(ptb_window, goText, 'center', 'center', white .* goColor, [], [], [], 1.5); %
+    flipSyncState = ~flipSyncState;
+    Screen('FillRect', ptb_window, cfg.SCREEN_SYNC_COLOR .* flipSyncState, cfg.SCREEN_SYNC_RECT);
+    [~, fixCrossTime] = Screen('Flip', ptb_window);
+    code = TRIG_GO;
+    log_event(eventFile, cfg.DIGOUT, fixCrossTime, [], [], trials_spec.stim_conditions(itrial), [], code, 'Go Visual', flipSyncState);  
+        
+    trialEndTime = audioGoTime + go_trial_duration_ms/1000; %%% give subject this much time to respond (ms-->s)
+
     % show STOP cue if it's a STOP trial; on GO trial, wait for response
     if trials_spec.is_stoptrial(itrial) % if this is a stop trial
       
         %prepearing STOP screen flip
-        if show_stoptrial_visual_cue 
-            DrawFormattedText(ptb_window, stoptrial_text, 'center', 'center', white * stoptrial_color); % prepare STOP visual stimulus
-            flipSyncState = ~flipSyncState;
-            Screen('FillRect', ptb_window, cfg.SCREEN_SYNC_COLOR .* flipSyncState, cfg.SCREEN_SYNC_RECT);
-        end
+        Screen('TextSize', ptb_window, stopFontSize);          
+        DrawFormattedText(ptb_window, stopText, 'center', 'center', stopColor, [], [], [], 1.5); % prepare STOP visual stimulus
+        flipSyncState = ~flipSyncState;
+        Screen('FillRect', ptb_window, cfg.SCREEN_SYNC_COLOR .* flipSyncState, cfg.SCREEN_SYNC_RECT);
 
         %loading stop buzz
         PsychPortAudio('FillBuffer', pa_handle, stop_buzzer);
@@ -504,43 +539,35 @@ for itrial = curTrial:ntrials
         code = TRIG_FIXCROSS + TRIG_STOP;
         log_event(eventFile, cfg.DIGOUT, audioStopTime, stop_buzzer_duration, [], trials_spec.stim_conditions(itrial), [], code, 'Stop Buzzer', flipSyncState);
 
-        if show_stoptrial_visual_cue
-            [~, visualStopTime] = Screen('Flip', ptb_window);
-            code = TRIG_STOP;
-            log_event(eventFile, cfg.DIGOUT, visualStopTime, [], [], trials_spec.stim_conditions(itrial), [], code, 'Visual Stop', flipSyncState);  
-        end
+        [~, visualStopTime] = Screen('Flip', ptb_window);
+        code = TRIG_STOP;
+        log_event(eventFile, cfg.DIGOUT, visualStopTime, [], [], trials_spec.stim_conditions(itrial), [], code, 'Stop Visual', flipSyncState);  
 
         trialEndTime = audioGoTime + stoptrial_duration_ms/1000; %% wait until full stop trial duration has elapsed (ms-->s)
-
-    else %GO trial
-        trialEndTime = audioGoTime + go_trial_duration_ms/1000; %%% give subject this much time to respond (ms-->s)
     end
 
+    %prevent passing to next trial too soon while allowing to escape
     [keyPressTime, keyCode] = KbWait(cfg.KEYBOARD_ID, 2, trialEndTime);
     if any(ismember(find(keyCode),keyCodeEscape))
-        log_event(eventFile, cfg.DIGOUT, keyPressTime, [], [], [], [], TRIG_ESC, 'Escape', flipSyncState);
+        log_event(eventFile, cfg.DIGOUT, [], [], [], [], [], TRIG_ESC, 'Escape', flipSyncState);
         fprintf("Escape key detected, ending run.\n");
         clear onCleanupTasks
         return
-    end 
+    end
+    if keyPressTime < trialEndTime
+      log_event(eventFile, cfg.DIGOUT, keyPressTime, [], [], [], [], TRIG_KEYPRESS, 'Key Press', flipSyncState);
+      WaitSecs('UntilTime',trialEndTime);
+      nextTrialRequested = 1;
+    end
 
+    % message to experimenter
+    elapsedTime = keyPressTime - startRunTime;
+    fprintf('Trial %2i / %i copleted at %02d:%02d \n', itrial, ntrials, floor(elapsedTime/60),round(mod(elapsedTime,60)));     
+    
     % trial completed, update log file
     actualWaitTime = audioGoTime + go_beep_duration/2 - audioStimTime - WordDuration;
     logStr =  sprintf('%d %d %.3f %.3f \n', itrial, 1, actualWaitTime, 0);  %record trial completion + jitter time delay
     fprintf(trialFile,'%s',logStr);
-    curTrial = curTrial + 1;
-
-    %Fixation cross
-    DrawFormattedText(ptb_window, '+', 'center', 'center', WhiteIndex(ptb_window)); 
-    flipSyncState = ~flipSyncState;
-    Screen('FillRect', ptb_window, cfg.SCREEN_SYNC_COLOR .* flipSyncState, cfg.SCREEN_SYNC_RECT);
-    [~, fixCrossTime] = Screen('Flip', ptb_window);
-    code = TRIG_FIXCROSS + TRIG_ITG;
-    log_event(eventFile, cfg.DIGOUT, fixCrossTime, [], [], [], [], code, 'Inter Trial Gap', flipSyncState);  
-
-    % message to experimenter
-    elapsedTime = keyPressTime - startRunTime;
-    fprintf('Trial %2i / %i copleted at %02d:%02d \n', curTrial, ntrials, floor(elapsedTime/60),round(mod(elapsedTime,60)));     
 end
 
 %Calculate, display, and print total run duration in mins, close everything
@@ -550,7 +577,8 @@ logStr =  sprintf('Total run duration: %.3f mins', runTimeMins);
 fprintf(trialFile,'%s',logStr);
 
 % Thank you message
-DrawFormattedText(ptb_window, thanks_message, 'center', 'center', white);
+Screen('TextSize', ptb_window, instructionFontSize);
+DrawFormattedText(ptb_window, thanks_message, 'center', 'center', white, [], [], [], 1.5);
 flipSyncState = ~flipSyncState;
 Screen('FillRect', ptb_window, cfg.SCREEN_SYNC_COLOR .* flipSyncState, cfg.SCREEN_SYNC_RECT);
 [~, thanksMesageTime] = Screen('Flip', ptb_window);
