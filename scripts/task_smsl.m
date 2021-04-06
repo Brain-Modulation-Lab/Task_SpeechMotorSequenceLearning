@@ -59,7 +59,7 @@ minJitter_ms = 500; %min time between end visual stim and start of go signal in 
 maxJitter_ms = 1000; %max time between end visual stim and start of go signal in ms
 
 % for training ONLY, specify the range of latencies between fixation cross appearance and STOP signal
-cfg.training_stoptrial_latencies_ms = [200:100:500]; % milliseconds
+cfg.training_stoptrial_latencies_ms = [200:200:800]; % milliseconds
 
 % for familiarization and testing, set a fixed stoptrial latency
 cfg.familiarization_stoptrial_latency_ms = 200; % milliseconds 
@@ -371,6 +371,8 @@ for itrial = startTrial:ntrials
 
         disp('Press Spacebar to continue experiment')  %Message to experimenter
 
+        WaitSecs(3); %Forced pause to prevent inadvertently skipping the break
+        
         [keyPressTime, keyCode] = KbWait(cfg.KEYBOARD_ID, 2);
         log_event(eventFile, cfg.DIGOUT, keyPressTime, [], [], [], [], TRIG_KEYPRESS, 'Key Press', flipSyncState);
         if any(ismember(find(keyCode),keyCodeEscape))

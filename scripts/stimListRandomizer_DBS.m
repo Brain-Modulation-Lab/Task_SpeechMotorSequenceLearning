@@ -25,20 +25,18 @@ rng('shuffle');
 
 group_num = cfg.GROUP_NUM;
 experiment_phase = cfg.EXP_PHASE_NUM;
+nblocks = cfg.N_BLOCKS;
 
 % select experimental phase, load stim index data
 if experiment_phase == 0
     exp_phase_name = 'Familiarization'; 
     stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_group_lists_familiarization.xlsx']);
-    nblocks = 1;
 elseif experiment_phase == 1
     exp_phase_name = 'Training';
     stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_group_lists_training.xlsx']);
-    nblocks = 1;
 elseif experiment_phase == 2
     exp_phase_name = 'Test';
     stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_group_lists_test.xlsx']);
-    nblocks = 1;
 else
     error('experiment_phase must equal 0 (familiarization), 1 (practice), or 2 (testing)')
 end

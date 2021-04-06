@@ -3,7 +3,7 @@
 % Creating configuration structure
 
 % subject and session
-cfg.SESSION_LABEL = 'test'; %type of session ('test', 'training', 'preop', 'intraop')
+cfg.SESSION_LABEL = 'training'; %type of session ('test', 'training', 'preop', 'intraop')
 if ~isfield(cfg,'SUBJECT')
   cfg.SUBJECT = ''; %subject identifier
   cfg.GROUP_NUM = [];
@@ -31,12 +31,13 @@ cfg.TASK = 'SMSL'; % name of current task
 cfg.TASK_VERSION = 1; % version number for task
 cfg.TASK_FUNCTION = './scripts/task_smsl.m';
 cfg.N_GROUPS = 5; % number of unique stimulus groups (subject groups)
+cfg.N_BLOCKS = 10;
 
 prompt = {'Subject ID','Session','Run (leave empty for new run)','Group Number (1-5)',...
-    sprintf('Experiment Phase?\n(0 = Familiarization, 1 = Training, 2 = Testing)')};
+    sprintf('Experiment Phase?\n(0 = Familiarization, 1 = Training, 2 = Testing)'),'Number of blocks'};
 dlgtitle = 'Experimenter Input';
 dims = [1 50];
-definput = {cfg.SUBJECT,cfg.SESSION_LABEL,'',num2str(cfg.GROUP_NUM),'1'};
+definput = {cfg.SUBJECT,cfg.SESSION_LABEL,'',num2str(cfg.GROUP_NUM),'1',num2str(cfg.N_BLOCKS)};
 answer = inputdlg(prompt,dlgtitle,dims,definput);
 
 cfg.SUBJECT = answer{1};
@@ -44,6 +45,7 @@ cfg.SESSION_LABEL = answer{2};
 cfg.RUN_ID = str2double(answer{3});
 cfg.GROUP_NUM = str2double(answer{4});
 cfg.EXP_PHASE_NUM = str2double(answer{5});
+cfg.N_BLOCKS = str2double(answer{6});
 switch cfg.EXP_PHASE_NUM
     case 0
         cfg.EXP_PHASE = 'Familiarization';
