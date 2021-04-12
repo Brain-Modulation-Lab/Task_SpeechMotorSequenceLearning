@@ -47,7 +47,7 @@ experiment_phase = cfg.EXP_PHASE;
 subjName = cfg.SUBJECT;
 
 %Options
-ntrials_between_breaks = 45; % have subject take a break after this many trials
+ntrials_between_breaks = 48; % have subject take a break after this many trials
 
 %Times      
 go_trial_duration_ms = 1500; %%% time in milliseconds from onset of  GO cue to enabling keypress for next trial 
@@ -59,11 +59,11 @@ minJitter_ms = 500; %min time between end visual stim and start of go signal in 
 maxJitter_ms = 1000; %max time between end visual stim and start of go signal in ms
 
 % for training ONLY, specify the range of latencies between fixation cross appearance and STOP signal
-cfg.training_stoptrial_latencies_ms = [200:200:800]; % milliseconds
+cfg.training_stoptrial_latencies_ms = [400:200:1000]; % milliseconds
 
 % for familiarization and testing, set a fixed stoptrial latency
 cfg.familiarization_stoptrial_latency_ms = 200; % milliseconds 
-cfg.testing_stoptrial_latency_ms = 200; % milliseconds
+cfg.testing_stoptrial_latency_ms = 500; % milliseconds
 
 %Fonts
 instructionFontSize = 70;
@@ -94,15 +94,15 @@ thanks_message = 'END OF TASK\nThank you!';
 
 % Go cue % audio to play as START cue
 start_cue_audio_file = [cfg.PATH_TASK filesep 'stim' filesep 'beep.wav']; 
-GoBeepAmp = 1;
+GoBeepAmp = 0.15;
 
 % Stop cue % audio to play on STOP trials
 stoptrial_audio_file = [cfg.PATH_TASK filesep 'stim' filesep 'mixkit-game-show-buzz-in-3090.wav']; 
-StopBeepAmp = 0.5;
+StopBeepAmp = 0.04;
 
 % script initialization tones
 InitBeepTone = 500;
-InitBeepDuration = 0.2;
+InitBeepDuration = 0.05;
 InitBeepAmp = 0.2 * cfg.SYNC_BEEPS;
 
 %trigger codes
