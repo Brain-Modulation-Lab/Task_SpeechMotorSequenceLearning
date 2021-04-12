@@ -7,6 +7,8 @@ cfg.SESSION_LABEL = 'training'; %type of session ('test', 'training', 'preop', '
 if ~isfield(cfg,'SUBJECT')
   cfg.SUBJECT = ''; %subject identifier
   cfg.GROUP_NUM = [];
+elseif ~isfield(cfg,'GROUP_NUM')
+	cfg.GROUP_NUM = [];
 end
 cfg.DATA_TYPE = 'task'; %BIDS data type 'beh' for behavioral and task data. 
 
