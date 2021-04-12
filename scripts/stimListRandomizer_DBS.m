@@ -126,15 +126,15 @@ is_stoptrial = logical(trial_list_all_blocks(:,3));
 trial_list_all_blocks(:,4) = zeros(ntrials_total,1); % add column for stop latency
 switch exp_phase_name
     case 'Training' % test range of stop latencies for training
-        n_stop_latencies = length(cfg.training_stoptrial_latencies_ms); 
-        stop_latencies_expanded = repmat(cfg.training_stoptrial_latencies_ms, 1, total_stoptrials); % expand so we can sample from them
+        n_stop_latencies = length(cfg.stopSignalDelay_ms); 
+        stop_latencies_expanded = repmat(cfg.stopSignalDelay_ms, 1, total_stoptrials); % expand so we can sample from them
         stop_latency_inds = randperm(length(stop_latencies_expanded), total_stoptrials); % one STOP latency for each STOP trial
         stop_latencies_by_trial = stop_latencies_expanded(stop_latency_inds);
         trial_list_all_blocks(is_stoptrial,4) = stop_latencies_by_trial; % assign latencies to stop trials
     case 'Familiarization' % use fixed stop latency for familiarization
-        trial_list_all_blocks(is_stoptrial,4) = cfg.familiarization_stoptrial_latency_ms; % assign latencies to stop trials
+        trial_list_all_blocks(is_stoptrial,4) = cfg.stopSignalDelay_ms(1); % assign latencies to stop trials
     case 'Test' % use fixed stop latency for familiarization
-        trial_list_all_blocks(is_stoptrial,4) = cfg.testing_stoptrial_latency_ms; % assign latencies to stop trials
+        trial_list_all_blocks(is_stoptrial,4) = cfg.stopSignalDelay_ms(1); % assign latencies to stop trials
 end
    
 %% organizing output in trials table

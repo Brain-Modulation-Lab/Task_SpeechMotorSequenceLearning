@@ -37,6 +37,15 @@ function task_smsl(cfg)
 %   cfg.SYNC_BEEPS          bool, should synchronization beeps be played at
 %                           the beggining of the task?
 %
+% COMMANDS:
+%   spacebar: next trial
+%   +: Increase stop-signal delay (SSD) by 50ms
+%   -: Decrease stop-signal delay by (SSD) 50ms
+%   s: Mark last stio trial as stopped before speech onset [SSD += 50ms]
+%   i: Mark last stop trial as interrupted
+%   c: Mark last stip trial as continued (failed stop) [SSD -= 50ms]
+%   esc: End current run
+%
 % OUTPUT: Log file with all output to the console, Trial file containing
 % description of each trial in the run and Event file containing precise
 % timing of all events in the run. 
@@ -57,13 +66,9 @@ visualStimDuration_ms = 1450; %duration of the orthographic representation
 interTrialGapDuration_ms = 1000; % enforced gap between key press and start of next trial
 minJitter_ms = 500; %min time between end visual stim and start of go signal in ms
 maxJitter_ms = 1000; %max time between end visual stim and start of go signal in ms
-
-% for training ONLY, specify the range of latencies between fixation cross appearance and STOP signal
-cfg.training_stoptrial_latencies_ms = [400:200:1000]; % milliseconds
-
-% for familiarization and testing, set a fixed stoptrial latency
-cfg.familiarization_stoptrial_latency_ms = 200; % milliseconds 
-cfg.testing_stoptrial_latency_ms = 500; % milliseconds
+SSD_step_ms = 50; %step for modifying Stop Signal Delay on the fly in ms
+SSD_adjustment_ms = 0; %adjustement over the presepcified SSD in the spec file in ms
+keypress_duration_ms = 100; %duration of key press event
 
 %Fonts
 instructionFontSize = 70;
@@ -142,6 +147,11 @@ end
 %Set Stop/Start Keys
 KbName('UnifyKeyNames')
 keyCodeEscape = KbName('ESCAPE');
+keyCodeInterrupted = KbName('i');
+keyCodeContinued = KbName('c');
+keyCodeStopped = KbName('s');
+keyCodeIncrease = KbName('=+');
+keyCodeDecrease = KbName('-_');
 keyCodeStart = KbName('space');  %space to move to next trial
 
 % Initialize Sound
@@ -315,9 +325,14 @@ end
 
 %% Initialization messages for experimenter
 
-disp('Number of trials in run: '); % display the total number of trials
-disp(ntrials);
-disp('Press and hold "Escape" to exit program early.');
+fprintf('Number of trials in run: %i \n',ntrials); % display the total number of trials
+fprintf('SPACEBAR: next trial\n');
+fprintf('+: Increase stop-signal delay (SSD) by 50ms\n');
+fprintf('-: Decrease stop-signal delay by (SSD) 50ms\n');
+fprintf('S: Mark last stio trial as stopped before speech onset [SSD += 50ms]\n');
+fprintf('I: Mark last stop trial as interrupted\n');
+fprintf('C: Mark last stip trial as continued (failed stop) [SSD -= 50ms]\n');
+fprintf('ESCAPE: End current run\n');
 WaitSecs(1.0);
 
 %% experiment-------------------------------------------------------------
@@ -358,7 +373,7 @@ WaitSecs(1.0);
 startRunTime = GetSecs();
 nextTrialRequested = 1; %only one space bar transitions from instructions to begging of experiment
 for itrial = startTrial:ntrials
-  
+      
     if (mod(itrial,ntrials_between_breaks) == 0) && (itrial ~= ntrials)  % Break after every X trials, but not on the last
         Screen('TextSize', ptb_window, instructionFontSize); %return to smaller text size (from larger fixation +)
         DrawFormattedText(ptb_window, break_message, 'center', 'center', white, [], [], [], 1.5);
@@ -397,19 +412,9 @@ for itrial = startTrial:ntrials
     stim = char(trials_spec.word{itrial});  %Load word for this trial
     numString = num2str(trials_spec.stimnum(itrial)); %insert stimulus index here
     numString = pad(numString, 2, 'left', '0'); %inserts a 0 before numString for single digit numbers   
-
-    % print info about this trial
     audioStimFile = [numString,'_',lower(stim),'.wav'];
     audioStimPath = [cfg.PATH_TASK filesep 'stim' filesep audioStimFile]; %Load audio file
-    if trials_spec.is_stoptrial(itrial)
-        stop_latency_string = [' .............. STOP latency = ', num2str(trials_spec.stop_latency_ms(itrial)), 'ms'];
-    else
-        stop_latency_string = '';
-    end
-    disp(['Trial # ', num2str(itrial), ' ........ ', 'stim = ''', char(trials_spec.word{itrial}), ''' ..............',...
-        ' STOP trial = ', num2str(trials_spec.is_stoptrial(itrial)), stop_latency_string]); 
-    disp(audioStimPath);        
-
+  
     %reading word audio file
     [audStim, stimFs]  = psychwavread(audioStimPath);
     if pa_handle_Fs ~= stimFs % verifying output frequency and resampling
@@ -434,7 +439,52 @@ for itrial = startTrial:ntrials
           return
       end
     end
+    
+    % Manually control stopSignalDelay delay
+    while any(ismember(find(keyCode),[keyCodeIncrease,keyCodeDecrease]))
+        if any(ismember(find(keyCode), keyCodeIncrease))
+          SSD_adjustment_ms = SSD_adjustment_ms + SSD_step_ms; %increasing SSD
+          str = sprintf('SSD adj + %i ms = %i ms',SSD_step_ms,SSD_adjustment_ms); 
+        elseif any(ismember(find(keyCode), keyCodeDecrease))
+          SSD_adjustment_ms = SSD_adjustment_ms - SSD_step_ms; %decreasing SSD
+          str = sprintf('SSD adj - %i ms = %i ms',SSD_step_ms,SSD_adjustment_ms); 
+        else
+          str = 'incorrect key';
+        end
+        fprintf('%s \n',str);
+        log_event(eventFile, cfg.DIGOUT, [], [], [], [], [], TRIG_KEYPRESS, str, flipSyncState);
+        WaitSecs(keypress_duration_ms/1000);
+        log_event(eventFile, cfg.DIGOUT, [], [], [], [], [], 0, "Key Press End", flipSyncState);
+        [keyPressTime, keyCode] = KbWait(cfg.KEYBOARD_ID, 2);
+    end
+    
+    % Mark stop last stop trial as Stopped, Interrupted or Continued  
+    if any(ismember(find(keyCode),[keyCodeStopped,keyCodeInterrupted,keyCodeContinued]))
+    	if any(ismember(find(keyCode), keyCodeStopped))
+      	SSD_adjustment_ms = SSD_adjustment_ms + SSD_step_ms; %increasing SSD
+        str = sprintf('Stopped: SSD adj + %i ms = %i ms',SSD_step_ms,SSD_adjustment_ms); 
+      elseif any(ismember(find(keyCode), keyCodeInterrupted))
+        str = sprintf('Interrupted: SSD adj = %i ms',SSD_adjustment_ms);
+      elseif any(ismember(find(keyCode), keyCodeContinued))
+      	SSD_adjustment_ms = SSD_adjustment_ms - SSD_step_ms; %decreasing SSD
+        str = sprintf('Continued: SSD adj - %i ms = %i ms',SSD_step_ms,SSD_adjustment_ms); 
+      else
+        str = 'incorrect key';
+      end
+      fprintf('%s \n',str);
+      log_event(eventFile, cfg.DIGOUT, [], [], [], [], [], TRIG_KEYPRESS, str, flipSyncState);
+    end
+      
+    % print info about this trial
+    if trials_spec.is_stoptrial(itrial)
+        stop_latency_string = sprintf(' | STOP latency = %f ms', trials_spec.stop_latency_ms(itrial) + SSD_adjustment_ms);
+    else
+        stop_latency_string = '';
+    end
+    fprintf('Trial #%2i | stim = %s | STOP trial = %i %s \n', itrial, trials_spec.word{itrial}, trials_spec.is_stoptrial(itrial), stop_latency_string); 
+    %disp(audioStimPath);        
 
+    
     % if we're about to show the first STOP trial during the familiarization phase, give STOP trial instructions
     if  strcmp(experiment_phase,'Familiarization') && itrial == first_stop_trial
         Screen('TextSize', ptb_window, instructionFontSize); %return to smaller text size (from larger fixation +)
@@ -535,7 +585,7 @@ for itrial = startTrial:ntrials
 
         %playing buzz at indicated time
         pa_repetitions = 1; 
-        pa_when = audioGoTime + trials_spec.stop_latency_ms(itrial)/1000;
+        pa_when = audioGoTime + (trials_spec.stop_latency_ms(itrial) + SSD_adjustment_ms)/1000;
         pa_waitForStart = 1; %get time of audio start
         audioStopTime = PsychPortAudio('Start', pa_handle, pa_repetitions, pa_when, pa_waitForStart);
         code = TRIG_FIXCROSS + TRIG_STOP;
@@ -556,15 +606,17 @@ for itrial = startTrial:ntrials
         clear onCleanupTasks
         return
     end
+
     if keyPressTime < trialEndTime
       log_event(eventFile, cfg.DIGOUT, keyPressTime, [], [], [], [], TRIG_KEYPRESS, 'Key Press', flipSyncState);
+      fprintf('Keypress noted, will continue after end of trial\n');
       WaitSecs('UntilTime',trialEndTime);
       nextTrialRequested = 1;
     end
 
     % message to experimenter
     elapsedTime = keyPressTime - startRunTime;
-    fprintf('Trial %2i / %i copleted at %02d:%02d \n', itrial, ntrials, floor(elapsedTime/60),round(mod(elapsedTime,60)));     
+    fprintf('Trial #%2i of %i copleted at %02d:%02d \n', itrial, ntrials, floor(elapsedTime/60),round(mod(elapsedTime,60)));     
     
     % trial completed, update log file
     actualWaitTime = audioGoTime + go_beep_duration/2 - audioStimTime - WordDuration;
