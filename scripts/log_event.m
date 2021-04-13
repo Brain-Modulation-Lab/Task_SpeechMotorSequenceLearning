@@ -31,12 +31,13 @@ if isempty(val)
     val = 0;
 end
 
+if isempty(flip_sync)
+    flip_sync = double(0);
+else
+    flip_sync = double(logical(flip_sync));
+end
+
 if ~isempty(is_digout) && is_digout
-    if isempty(flip_sync)
-        flip_sync = double(0);
-    else
-        flip_sync = double(logical(flip_sync));
-    end
 	if isempty(samp) 
         samp = xippmex('time');
 	end
@@ -59,6 +60,6 @@ if isempty(event_name)
     event_name = 'n/a';
 end
 
-fprintf(file,'%10.6f\t%6.6f\t%i\t"%s"\t"%s"\t%i\t"%s"\n',onset-t0,dur,samp,trial_type,stim_file,val,event_name);
+fprintf(file,'%10.6f\t%6.6f\t%i\t"%s"\t"%s"\t%i\t"%s"\n',onset-t0,dur,samp,trial_type,stim_file,val + 32768 * flip_sync,event_name);
 
 
