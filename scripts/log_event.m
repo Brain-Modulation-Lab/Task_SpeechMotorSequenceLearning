@@ -33,12 +33,14 @@ end
 
 if ~isempty(is_digout) && is_digout
     if isempty(flip_sync)
-        flip_sync = 0;
+        flip_sync = double(0);
+    else
+        flip_sync = double(logical(flip_sync));
     end
 	if isempty(samp) 
         samp = xippmex('time');
 	end
-	xippmex('digout', [1,2,3,4,5], [double(flip_sync),double(flip_sync),double(flip_sync),double(flip_sync),val]);
+	xippmex('digout', [1,2,3,4,5], [flip_sync,flip_sync,flip_sync,flip_sync,val + 32768 * flip_sync]);
 else
     if isempty(samp) 
         samp = 0;
