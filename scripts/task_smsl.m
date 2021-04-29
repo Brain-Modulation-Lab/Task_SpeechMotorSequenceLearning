@@ -96,7 +96,7 @@ break_message = 'Take a break!\nClick to continue.';
 thanks_message = 'END OF TASK\nThank you!';
 
 %Audio options
-reallyneedlowlatency = 1; % flag for InitializePsychSound... set to 1 for lower latency
+reallyneedlowlatency = 0; % flag for InitializePsychSound... set to 1 for lower latency
 
 % Go cue % audio to play as START cue
 start_cue_audio_file = [cfg.PATH_TASK filesep 'stim' filesep 'beep.wav']; 
@@ -169,7 +169,7 @@ else
     disp(pa_devices(pa_devices.DeviceIndex==cfg.AUDIO_ID,:));
 end
 pa_mode = 1; %1 == sound playback only; 
-pa_reqlatencyclass = 3; % Try to get the lowest latency that is possible under the constraint of reliable playback.  
+pa_reqlatencyclass = 1; % Try to get the lowest latency that is possible under the constraint of reliable playback.  
 pa_freq = []; %loading default freq for device
 pa_channels = 2; %playing as stereo, converting to mono by hardware connector
 pa_handle = PsychPortAudio('Open', cfg.AUDIO_ID, pa_mode, pa_reqlatencyclass, pa_freq, pa_channels);
@@ -617,9 +617,9 @@ nextTrialRequested = 1; %only one space bar transitions from instructions to beg
         elseif cfg.voiceTriggeredStopSignal %%% if STOP is to be triggered from voice onset, use onlineVoiceDetection
             voiceOnsetDetected = false; % initialize
             WaitSecs('UntilTime',audioGoTime + detection_safety_buffer_ms/1000); % wait so that we aren't triggering detection from the GO beep
-            while ~voiceOnsetDetected %%% run voice detection function until it detects voice
+            %while ~voiceOnsetDetected %%% run voice detection function until it detects voice
                 [~, ~, voiceOnsetDetected] = onlineVoiceDetection(deviceReader,detectionOps);
-            end
+            %end
             pa_when = 0 + (trials_spec.stop_latency_ms(itrial) + SSD_adjustment_ms)/1000; % STOP initiation = [now] + extra latencies
             audioStopTime = PsychPortAudio('Start', pa_handle, pa_repetitions, pa_when, pa_waitForStart);
 % % % % % % % % % %             global gg; audioStopTime - gg
