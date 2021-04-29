@@ -35,6 +35,7 @@ cfg.TASK_FUNCTION = './scripts/task_smsl.m';
 cfg.N_GROUPS = 5; % number of unique stimulus groups (subject groups)
 cfg.N_BLOCKS = 10;
 cfg.stopSignalDelay_ms = [500];
+cfg.voiceTriggeredStopSignal = 0; % if true, measure latency of STOP onset from voice onset; if false, measure STOP latency from GO signal
 
 prompt = {'Subject ID',...
           'Session',...

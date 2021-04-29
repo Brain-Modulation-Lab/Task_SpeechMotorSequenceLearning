@@ -17,8 +17,11 @@ cfg.SCREEN_SYNC_RECT = [0 0 1 1]; %rectangle used for screen sync
 cfg.SCREEN_SYNC_COLOR = [255 255 255];
 
 % Paths and configurations
-cfg.PATH_TASK = '~/git/Task_SpeechMotorSequenceLearning';
-cfg.PATH_SOURCEDATA = '~/Data/DBS/sourcedata'; %sourdata root folder 
+cfg.PATH_TASK = '~/git/Task_SpeechMotorSequenceLearning'; 
+    cfg.PATH_TASK = 'C:/speechres/git/Task_SpeechMotorSequenceLearning'; %%% changed by Andrew Meier
+% cfg.PATH_SOURCEDATA = '~/Data/DBS/sourcedata'; %source data root folder 
+    cfg.PATH_SOURCEDATA = 'C:/speechres/Data/DBS/sourcedata'; %source data root folder %%% changed by Andrew Meier
+
 cfg.AUDIO_ID = []; 
 cfg.SCREEN_ID = 0; % prefered screen 
 
@@ -35,6 +38,7 @@ cfg.TASK_FUNCTION = './scripts/task_smsl.m';
 cfg.N_GROUPS = 5; % number of unique stimulus groups (subject groups)
 cfg.N_BLOCKS = 1;
 cfg.stopSignalDelay_ms = 500;
+cfg.voiceTriggeredStopSignal = 0; % if true, measure latency of STOP onset from voice onset; if false, measure STOP latency from GO signal
 
 prompt = {'Subject ID',...
           'Session',...

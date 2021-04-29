@@ -96,6 +96,7 @@ break_message = 'Take a break!\nClick to continue.';
 thanks_message = 'END OF TASK\nThank you!';
 
 %Audio options
+reallyneedlowlatency = 1; % flag for InitializePsychSound... set to 1 for lower latency
 
 % Go cue % audio to play as START cue
 start_cue_audio_file = [cfg.PATH_TASK filesep 'stim' filesep 'beep.wav']; 
@@ -156,7 +157,7 @@ keyCodeStart = KbName('space');  %space to move to next trial
 
 % Initialize Sound
 fprintf('Initializing Sound...\n'); 
-InitializePsychSound; 
+InitializePsychSound(reallyneedlowlatency); 
 
 % getting audio device id
 pa_devices = struct2table(PsychPortAudio('GetDevices'));
@@ -168,7 +169,7 @@ else
     disp(pa_devices(pa_devices.DeviceIndex==cfg.AUDIO_ID,:));
 end
 pa_mode = 1; %1 == sound playback only; 
-pa_reqlatencyclass = 1; % Try to get the lowest latency that is possible under the constraint of reliable playback.  
+pa_reqlatencyclass = 3; % Try to get the lowest latency that is possible under the constraint of reliable playback.  
 pa_freq = []; %loading default freq for device
 pa_channels = 2; %playing as stereo, converting to mono by hardware connector
 pa_handle = PsychPortAudio('Open', cfg.AUDIO_ID, pa_mode, pa_reqlatencyclass, pa_freq, pa_channels);
@@ -207,6 +208,29 @@ end
 % converting to stereo row vectors 
 stop_buzzer = [stop_buzzer(:,1)';stop_buzzer(:,1)'] .* StopBeepAmp .* cfg.AUDIO_AMP;
 stop_buzzer_duration = size(go_beep,2) ./ stop_buzzer_Fs;
+
+%% if doing voice onset detection, set up audio recording
+if cfg.voiceTriggeredStopSignal
+    detectionOps.recordLen = 10;            % length of recording in seconds
+    detectionOps.Fs = 48000;                 % sampling frequency in Hz
+    detectionOps.frameDur = 30;             % frame duration in ms
+    detectionOps.onDur = 10;                 % how long the intensity must exceed the threshold to be considered an onset (ms)
+    detectionOps.onThresh = 10;             % onset threshold
+    detectionOps.minVoiceOnsetTime = 0;   % seconds; in general, set this = 0 and use detection_safety_buffer_ms instead
+    detectionOps.plotSound = false; 
+    detectionOps.consoleOutput = false;
+    detectionOps.breakOnDetection = true; % end the voice detection function when detection occurs (limited by frameDur)
+    detection_safety_buffer_ms = 250; %%% wait this long in ms after GO beep start before starting voice detection (150ms+ recommended)
+    
+    detectionOps.frameDurS = detectionOps.frameDur/1000; % convert ms to sec
+    frameLength = detectionOps.Fs*detectionOps.frameDurS;  % framelength in samples
+    deviceReader = audioDeviceReader(...
+        'Device', 'Default', ...   
+        'SamplesPerFrame', frameLength, ...
+        'SampleRate', detectionOps.Fs, ...
+        'BitDepth', '16-bit integer');
+    setup(deviceReader)
+end
 
 %% Initialize Screen
 
@@ -366,13 +390,15 @@ WaitSecs(1.0);
  
 
   fprintf('Running Subject %s\n', subjName)
+  
+  % set up au
 
 %% ----------------------------------------------------------------------------
 % -------------------------- MAIN TRIAL LOOP ---------------------------------
 % ----------------------------------------------------------------------------
 startRunTime = GetSecs();
 nextTrialRequested = 1; %only one space bar transitions from instructions to begging of experiment
-for itrial = startTrial:ntrials
+ for itrial = startTrial:ntrials
       
     if (mod(itrial,ntrials_between_breaks) == 0) && (itrial ~= ntrials)  % Break after every X trials, but not on the last
         Screen('TextSize', ptb_window, instructionFontSize); %return to smaller text size (from larger fixation +)
@@ -552,7 +578,6 @@ for itrial = startTrial:ntrials
     waitTime = waitTime / 1000; % convert ms to s
 
     % Generate the GO prompt (green + simultaneous with beep)
-    %%%%% NB: commented visual stimulus for GO cue (green cross) because synchronizing audio+visuals over Zoom is unreliable
     pa_repetitions = 1; 
     pa_when = fixCrossTime + waitTime;
     pa_waitForStart = 1; %get time of audio start
@@ -574,7 +599,7 @@ for itrial = startTrial:ntrials
     % show STOP cue if it's a STOP trial; on GO trial, wait for response
     if trials_spec.is_stoptrial(itrial) % if this is a stop trial
       
-        %prepearing STOP screen flip
+        %preparing STOP screen flip
         Screen('TextSize', ptb_window, stopFontSize);          
         DrawFormattedText(ptb_window, stopText, 'center', 'center', stopColor, [], [], [], 1.5); % prepare STOP visual stimulus
         flipSyncState = ~flipSyncState;
@@ -585,9 +610,20 @@ for itrial = startTrial:ntrials
 
         %playing buzz at indicated time
         pa_repetitions = 1; 
-        pa_when = audioGoTime + (trials_spec.stop_latency_ms(itrial) + SSD_adjustment_ms)/1000;
         pa_waitForStart = 1; %get time of audio start
-        audioStopTime = PsychPortAudio('Start', pa_handle, pa_repetitions, pa_when, pa_waitForStart);
+        if ~cfg.voiceTriggeredStopSignal %%% if STOP is not to be triggered from voice onset, don't use voice detection
+            pa_when = audioGoTime + (trials_spec.stop_latency_ms(itrial) + SSD_adjustment_ms)/1000;
+            audioStopTime = PsychPortAudio('Start', pa_handle, pa_repetitions, pa_when, pa_waitForStart);
+        elseif cfg.voiceTriggeredStopSignal %%% if STOP is to be triggered from voice onset, use onlineVoiceDetection
+            voiceOnsetDetected = false; % initialize
+            WaitSecs('UntilTime',audioGoTime + detection_safety_buffer_ms/1000); % wait so that we aren't triggering detection from the GO beep
+            while ~voiceOnsetDetected %%% run voice detection function until it detects voice
+                [~, ~, voiceOnsetDetected] = onlineVoiceDetection(deviceReader,detectionOps);
+            end
+            pa_when = 0 + (trials_spec.stop_latency_ms(itrial) + SSD_adjustment_ms)/1000; % STOP initiation = [now] + extra latencies
+            audioStopTime = PsychPortAudio('Start', pa_handle, pa_repetitions, pa_when, pa_waitForStart);
+% % % % % % % % % %             global gg; audioStopTime - gg
+        end
         code = TRIG_FIXCROSS + TRIG_STOP;
         log_event(eventFile, cfg.DIGOUT, audioStopTime, stop_buzzer_duration, [], trials_spec.stim_conditions(itrial), [], code, 'Stop Buzzer', flipSyncState);
 
@@ -625,6 +661,7 @@ for itrial = startTrial:ntrials
 end
 
 %Calculate, display, and print total run duration in mins, close everything
+release(deviceReader) %% release microphone
 runTimeSecs = GetSecs() - startRunTime;
 runTimeMins = runTimeSecs/60;
 logStr =  sprintf('Total run duration: %.3f mins', runTimeMins);
