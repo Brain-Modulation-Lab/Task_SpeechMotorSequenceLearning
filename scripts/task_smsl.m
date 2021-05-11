@@ -187,13 +187,17 @@ detection_safety_buffer_ms = 250; %%% wait this long in ms after GO beep start b
 suggested_latency_seconds = 0.02; % 'suggestedLatency' to input to PsychPortAudio(‘Open’)
 n_rec_chans = 2; % number of recording channels
 allocated_record_seconds = 10; % 'amountToAllocateSecs' to input to PsychPortAudio(‘GetAudioData’)
+baseline_start_prebeep = 0.5; % time before GO beep to start recording audio baseline
+baseline_stop_prebeep = 0.1; % time before GO beep to stop recording audio baseline
+baseline_memory_ntrials = 10; % number of trials in the past to average across to determine loudness baseline
+thresh_baseline_factor = 1.5; % voice detection threshold will be set at the running median baseline times this value
 detection_ops.waitscan_seconds = 0.005; % time to wait between recording scans
-detection_ops.loudness_threshold = cfg.loudness_threshold;  % amplitude threshold for voice detection; range 0 to 1
+detection_ops.max_dur_seconds = 2.5; % if voice not detected after this many seconds, play the buzzer
 
+baseline_memory = NaN(baseline_memory_ntrials, 1); % initialize
 
-% % % open playback and recording devices
+% % % open playback device
 playback_handle = PsychPortAudio('Open', cfg.AUDIO_ID_PLAYBACK, 1, pa_reqlatencyclass, pa_freq, n_playback_channels);
-recording_handle = PsychPortAudio('Open', cfg.AUDIO_ID_RECORDING, 2, pa_reqlatencyclass, pa_freq, n_rec_chans, [], suggested_latency_seconds);
 onCleanupTasks{19} = onCleanup(@() PsychPortAudio('Close')); % close playback and recording handles
 
 % loading audio and verifying output frequency and resampling
@@ -217,7 +221,7 @@ end
 go_beep = [go_beep(:,1)';go_beep(:,1)'] .* GoBeepAmp .* cfg.AUDIO_AMP;
 go_beep_duration = size(go_beep,2) ./ beep_Fs;
 
-%preload buzz audio 
+% preload buzz audio 
 fprintf('Loading buzz audio file...\n')
 [stop_buzzer, stop_buzzer_Fs] = psychwavread(stoptrial_audio_file);
 % verifying output frequency and resampling
@@ -229,13 +233,6 @@ end
 % converting to stereo row vectors 
 stop_buzzer = [stop_buzzer(:,1)';stop_buzzer(:,1)'] .* StopBeepAmp .* cfg.AUDIO_AMP;
 stop_buzzer_duration = size(go_beep,2) ./ stop_buzzer_Fs;
-
-%% if doing voice onset detection, set up audio recording
-if cfg.voiceTriggeredStopSignal
-    detection_ops.repetitions = 0; % loop indefinitely until detection
-    detection_ops.when = 0; % start immediately on function call
-    PsychPortAudio('GetAudioData', recording_handle, allocated_record_seconds); % initialize recording device with buffer
-end
 
 %% Initialize Screen
 
@@ -270,7 +267,7 @@ flipSyncState=0;
 
 %% Initializing log files
 
-%opening events file
+% opening events file
 eventFile = fopen(cfg.EVENT_FILENAME, 'a');  % Appending mode
 onCleanupTasks{16} = onCleanup(@() fclose(eventFile));
 fprintf(eventFile,'onset\tduration\tsample\ttrial_type\tstim_file\tvalue\tevent_code\n'); %BIDS event file in system time coord
@@ -402,7 +399,7 @@ WaitSecs(1.0);
 % -------------------------- MAIN TRIAL LOOP ---------------------------------
 % ----------------------------------------------------------------------------
 startRunTime = GetSecs();
-nextTrialRequested = 1; %only one space bar transitions from instructions to begging of experiment
+nextTrialRequested = 1; %only one space bar transitions from instructions to beginning of experiment
  for itrial = startTrial:ntrials
       
     if (mod(itrial,ntrials_between_breaks) == 0) && (itrial ~= ntrials)  % Break after every X trials, but not on the last
@@ -545,7 +542,7 @@ nextTrialRequested = 1; %only one space bar transitions from instructions to beg
         log_event(eventFile, cfg.DIGOUT, itgStartTime, [], [], [], [], code, 'Inter Trial Gap', flipSyncState);  
         
     end            
-
+    
     %Display orthographic stim and play audio after ITG
     Screen('TextSize', ptb_window, stimFontSize); %return to stim text size (from larger fixation +)
     DrawFormattedText(ptb_window, stim, 'center', 'center', white, [], [], [], 1.5);
@@ -555,10 +552,10 @@ nextTrialRequested = 1; %only one space bar transitions from instructions to beg
     code = TRIG_VISUAL;
     log_event(eventFile, cfg.DIGOUT, visualStimTime, visualStimDuration_ms/1000, [], trials_spec.stim_conditions(itrial), trials_spec.word{itrial}, code, 'Visual Stim Onset', flipSyncState);  
 
-    pa_repetitions = 1; 
+    pa_repetitions = 1; % play audio stim only once
     pa_when = visualStimTime + spacerVisualAudio_ms/1000;
     pa_waitForStart = 1; %get time of audio start
-    audioStimTime = PsychPortAudio('Start', playback_handle, pa_repetitions, pa_when, pa_waitForStart);
+    audioStimTime = PsychPortAudio('Start', playback_handle, pa_repetitions, pa_when, pa_waitForStart); % play audio stim
     code = TRIG_VISUAL + TRIG_AUDITORY;
     log_event(eventFile, cfg.DIGOUT, audioStimTime, WordDuration, [], trials_spec.stim_conditions(itrial), audioStimFile, code, 'Audio Stim Onset', flipSyncState);
     
@@ -582,10 +579,43 @@ nextTrialRequested = 1; %only one space bar transitions from instructions to beg
     waitTime = round((maxJitter_ms-minJitter_ms).*rand(1,1) + minJitter_ms); % set jittered waittime
     waitTime = waitTime / 1000; % convert ms to s
 
+    % if voice triggering, get baseline sound level to calibrate detection threshold
+    if cfg.voiceTriggeredStopSignal
+        baseline_start_time = fixCrossTime + waitTime - baseline_start_prebeep; % start baseline recording at this time before GO cue
+        baseline_stop_time = fixCrossTime + waitTime - baseline_stop_prebeep; % stop baseline recording at this time before GO cue  
+        if ~isnan(baseline_memory(1))
+            baseline_memory = circshift(baseline_memory, 1); % move each memory value down one slot
+            baseline_memory(1) = NaN; % make sure first slot is clear for us to save this trial's baseline into
+        end
+        detection_ops.repetitions = 0; % loop indefinitely until detection
+        detection_ops.when = 0; % start detection immediately on function call (does not apply to baseline recording)
+        recording_handle = PsychPortAudio('Open', cfg.AUDIO_ID_RECORDING, 2, pa_reqlatencyclass, pa_freq, n_rec_chans, [], suggested_latency_seconds);
+        PsychPortAudio('GetAudioData', recording_handle, allocated_record_seconds); % initialize recording device with buffer
+
+        % record baseline
+        WaitSecs('UntilTime', baseline_start_time); % wait until designated time to start baseline recording
+        PsychPortAudio('Start',recording_handle);  % start recording
+        WaitSecs('UntilTime', baseline_stop_time);
+        baseline_audio = PsychPortAudio('GetAudioData', recording_handle); % get baseline recording
+        PsychPortAudio('Close', recording_handle)
+        
+        % record baseline for this trial and compute new adaptive loudness threshold
+        baseline_memory(1) = max(abs(sum(baseline_audio,1)));
+        detection_ops.loudness_threshold = thresh_baseline_factor * median(baseline_memory, 'omitnan'); % median baseline across multiple trials
+        
+        % if this is a STOP trial and we're doing voice triggering, prepare the recording device handle
+        if trials_spec.is_stoptrial(itrial)
+            recording_handle = PsychPortAudio('Open', cfg.AUDIO_ID_RECORDING, 2, pa_reqlatencyclass, pa_freq, n_rec_chans, [], suggested_latency_seconds);
+            PsychPortAudio('GetAudioData', recording_handle, allocated_record_seconds); % initialize recording device with buffer
+        end
+    end
+    
+    
+    
     % Generate the GO prompt (green + simultaneous with beep)
     pa_repetitions = 1; 
     pa_when = fixCrossTime + waitTime;
-    pa_waitForStart = 1; %get time of audio start
+    pa_waitForStart = 1; % get time of audio start
     audioGoTime = PsychPortAudio('Start', playback_handle, pa_repetitions, pa_when, pa_waitForStart);
     code = TRIG_FIXCROSS + TRIG_GO;
     log_event(eventFile, cfg.DIGOUT, audioGoTime, go_beep_duration, [], trials_spec.stim_conditions(itrial), [], code, 'Go Beep', flipSyncState);
@@ -620,7 +650,7 @@ nextTrialRequested = 1; %only one space bar transitions from instructions to beg
             pa_when = audioGoTime + (trials_spec.stop_latency_ms(itrial) + SSD_adjustment_ms)/1000;
         elseif cfg.voiceTriggeredStopSignal %%% if STOP is to be triggered from voice onset, use onlineVoiceDetection
             WaitSecs('UntilTime',audioGoTime + detection_safety_buffer_ms/1000); % wait so that we aren't triggering detection from the GO beep
-            voice_detection_loop(recording_handle, detection_ops); % wait until voice detected, then continue
+            [~, voice_detected] = voice_detection_loop(recording_handle, detection_ops); % wait until voice detected or max duration reached, then continue
             pa_when = 0 + (trials_spec.stop_latency_ms(itrial) + SSD_adjustment_ms)/1000; % STOP initiation = [now] + extra latencies
         end
         audioStopTime = PsychPortAudio('Start', playback_handle, pa_repetitions, pa_when, pa_waitForStart); % play buzzer
@@ -632,6 +662,11 @@ nextTrialRequested = 1; %only one space bar transitions from instructions to beg
         log_event(eventFile, cfg.DIGOUT, visualStopTime, [], [], trials_spec.stim_conditions(itrial), [], code, 'Stop Visual', flipSyncState);  
 
         trialEndTime = audioGoTime + stoptrial_duration_ms/1000; %% wait until full stop trial duration has elapsed (ms-->s)
+        
+        % close the recording device handle and clear buffer so we can open a new one on the next trial
+        if cfg.voiceTriggeredStopSignal
+            PsychPortAudio('Close', recording_handle)
+        end
     end
 
     %prevent passing to next trial too soon while allowing to escape

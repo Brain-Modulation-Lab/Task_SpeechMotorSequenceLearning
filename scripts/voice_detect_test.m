@@ -3,7 +3,8 @@
 %%% by Andrew Meier
 
 % set options
-detection_ops.loudness_threshold = 0.1; % range 0 to 1
+detection_ops.loudness_threshold = 2; % range 0 to 1
+detection_ops.max_dur_seconds = inf; % don't timeout the detection function
 recording_device_index = 7; 
 playback_device_index = 5; 
 pa_reqlatencyclass = 1; % set to 1 to not force low latency
@@ -42,7 +43,7 @@ detection_ops.recording_repeititions = 0; % loop indefinitely until detection
 detection_ops.recording_when = 0; % start immediately
 
 % wait until voice detected, then continue
-voice_detection_loop(recording_handle, detection_ops); 
+[audiodata, voice_detected] = voice_detection_loop(recording_handle, detection_ops); 
 
 %% buzzer playback, clean up
 audioStopTime = PsychPortAudio('Start', playback_handle, playback_repetitions, playback_when, playback_waitForStart);

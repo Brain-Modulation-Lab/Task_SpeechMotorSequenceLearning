@@ -39,8 +39,6 @@ cfg.N_GROUPS = 5; % number of unique stimulus groups (subject groups)
 cfg.N_BLOCKS = 2;
 cfg.stopSignalDelay_ms = [0];
 cfg.voiceTriggeredStopSignal = 1; % if true, measure latency of STOP onset from voice onset; if false, measure STOP latency from GO signal
-cfg.loudness_threshold = 0.05; % amplitude threshold for voice detection; range 0 to 1
-
 
 prompt = {'Subject ID',...
           'Session',...
