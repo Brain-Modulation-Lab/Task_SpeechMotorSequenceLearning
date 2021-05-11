@@ -4,6 +4,8 @@
 % a file named (e.g.) '4.2 abcd.wav', where each group has 4 files, will
 % be renamed '14_abcd.wav' (because 4*[4-1] + 2 = 14)
 %
+% used to match stim filename convention expected by stim randomization script
+%
 %%%% updated 2021/3/17 by Andrew Meier
 
 extension_string = '.wav'; % rename all files with this extension

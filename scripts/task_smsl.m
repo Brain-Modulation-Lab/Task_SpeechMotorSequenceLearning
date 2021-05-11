@@ -21,7 +21,7 @@ function task_smsl(cfg)
 %   cfg.TRIAL_FILENAME      str, full filename (with path) to table specifying the run's trials
 %   cfg.SPEC_FILENAME       str, full filename (with path) for trial randomization table
 %   cfg.KEYBOARD_ID         int, preferred keyboard by ID
-%   cfg.AUDIO_ID            int, preferred audio device ID
+%   cfg.AUDIO_ID_PLAYBACK            int, preferred audio device ID
 %   cfg.AUDIO_AMP           float, audio amplitude. 
 %   cfg.SCREEN_ID           int, preferred screen ID 
 %   cfg.SKIP_SYNC_TEST      bool, should screen synchronization test be skipped? 
@@ -104,7 +104,7 @@ GoBeepAmp = 0.15;
 
 % Stop cue % audio to play on STOP trials
 stoptrial_audio_file = [cfg.PATH_TASK filesep 'stim' filesep 'mixkit-game-show-buzz-in-3090.wav']; 
-StopBeepAmp = 0.04;
+StopBeepAmp = 0.14;
 
 % script initialization tones
 InitBeepTone = 500;
@@ -159,24 +159,45 @@ keyCodeStart = KbName('space');  %space to move to next trial
 fprintf('Initializing Sound...\n'); 
 InitializePsychSound(reallyneedlowlatency); 
 
-% getting audio device id
+% getting audio playback device id
 pa_devices = struct2table(PsychPortAudio('GetDevices'));
-if isempty(cfg.AUDIO_ID) || ~ismember(cfg.AUDIO_ID,pa_devices.DeviceIndex)
+if isempty(cfg.AUDIO_ID_PLAYBACK) || ~ismember(cfg.AUDIO_ID_PLAYBACK,pa_devices.DeviceIndex)
     fprintf('\nNo audio device was selected, using default. Choose AUDIO_ID from this table:\n'); 
     disp(pa_devices);
 else
-    fprintf('The following audio device was selected');
-    disp(pa_devices(pa_devices.DeviceIndex==cfg.AUDIO_ID,:));
+    fprintf('The following audio playback device was selected');
+    disp(pa_devices(pa_devices.DeviceIndex==cfg.AUDIO_ID_PLAYBACK,:));
 end
-pa_mode = 1; %1 == sound playback only; 
+% getting audio recording device id
+if isempty(cfg.AUDIO_ID_RECORDING) || ~ismember(cfg.AUDIO_ID_RECORDING,pa_devices.DeviceIndex)
+    fprintf('\nNo audio device was selected, using default. Choose AUDIO_ID from this table:\n'); 
+    disp(pa_devices);
+else
+    fprintf('The following audio recording device (for voice detection only) was selected ');
+    disp(pa_devices(pa_devices.DeviceIndex==cfg.AUDIO_ID_RECORDING,:));
+end
+
+% set playback device parameters
 pa_reqlatencyclass = 1; % Try to get the lowest latency that is possible under the constraint of reliable playback.  
-pa_freq = []; %loading default freq for device
-pa_channels = 2; %playing as stereo, converting to mono by hardware connector
-pa_handle = PsychPortAudio('Open', cfg.AUDIO_ID, pa_mode, pa_reqlatencyclass, pa_freq, pa_channels);
-onCleanupTasks{19} = onCleanup(@() PsychPortAudio('Close', pa_handle));
+pa_freq = []; %loading default freq for devices
+n_playback_channels = 2; %playing as stereo, converting to mono by hardware connector
+
+% set STOP trial and recording device parameters
+detection_safety_buffer_ms = 250; %%% wait this long in ms after GO beep start before starting voice detection (150ms+ recommended)
+suggested_latency_seconds = 0.02; % 'suggestedLatency' to input to PsychPortAudio(‘Open’)
+n_rec_chans = 2; % number of recording channels
+allocated_record_seconds = 10; % 'amountToAllocateSecs' to input to PsychPortAudio(‘GetAudioData’)
+detection_ops.waitscan_seconds = 0.005; % time to wait between recording scans
+detection_ops.loudness_threshold = cfg.loudness_threshold;  % amplitude threshold for voice detection; range 0 to 1
+
+
+% % % open playback and recording devices
+playback_handle = PsychPortAudio('Open', cfg.AUDIO_ID_PLAYBACK, 1, pa_reqlatencyclass, pa_freq, n_playback_channels);
+recording_handle = PsychPortAudio('Open', cfg.AUDIO_ID_RECORDING, 2, pa_reqlatencyclass, pa_freq, n_rec_chans, [], suggested_latency_seconds);
+onCleanupTasks{19} = onCleanup(@() PsychPortAudio('Close')); % close playback and recording handles
 
 % loading audio and verifying output frequency and resampling
-pa_handle_status = PsychPortAudio('GetStatus', pa_handle);
+pa_handle_status = PsychPortAudio('GetStatus', playback_handle);
 pa_handle_Fs = pa_handle_status.SampleRate;
 
 %construction initialization beeps
@@ -211,25 +232,9 @@ stop_buzzer_duration = size(go_beep,2) ./ stop_buzzer_Fs;
 
 %% if doing voice onset detection, set up audio recording
 if cfg.voiceTriggeredStopSignal
-    detectionOps.recordLen = 10;            % length of recording in seconds
-    detectionOps.Fs = 48000;                 % sampling frequency in Hz
-    detectionOps.frameDur = 30;             % frame duration in ms
-    detectionOps.onDur = 10;                 % how long the intensity must exceed the threshold to be considered an onset (ms)
-    detectionOps.onThresh = 10;             % onset threshold
-    detectionOps.minVoiceOnsetTime = 0;   % seconds; in general, set this = 0 and use detection_safety_buffer_ms instead
-    detectionOps.plotSound = false; 
-    detectionOps.consoleOutput = false;
-    detectionOps.breakOnDetection = true; % end the voice detection function when detection occurs (limited by frameDur)
-    detection_safety_buffer_ms = 250; %%% wait this long in ms after GO beep start before starting voice detection (150ms+ recommended)
-    
-    detectionOps.frameDurS = detectionOps.frameDur/1000; % convert ms to sec
-    frameLength = detectionOps.Fs*detectionOps.frameDurS;  % framelength in samples
-    deviceReader = audioDeviceReader(...
-        'Device', 'Default', ...   
-        'SamplesPerFrame', frameLength, ...
-        'SampleRate', detectionOps.Fs, ...
-        'BitDepth', '16-bit integer');
-    setup(deviceReader)
+    detection_ops.repetitions = 0; % loop indefinitely until detection
+    detection_ops.when = 0; % start immediately on function call
+    PsychPortAudio('GetAudioData', recording_handle, allocated_record_seconds); % initialize recording device with buffer
 end
 
 %% Initialize Screen
@@ -335,12 +340,12 @@ trials_spec.stim_conditions = num2str(trials_spec.stim_conditions);
 log_metadata(cfg,eventFile);
 
 %testing triggers
-PsychPortAudio('FillBuffer', pa_handle, InitBeep);
+PsychPortAudio('FillBuffer', playback_handle, InitBeep);
 pa_repetitions = 1; 
 pa_when = 0;
 pa_waitForStart = 1;
 for i = 1:5
-    BeepStartTime = PsychPortAudio('Start', pa_handle, pa_repetitions, pa_when, pa_waitForStart);
+    BeepStartTime = PsychPortAudio('Start', playback_handle, pa_repetitions, pa_when, pa_waitForStart);
     log_event(eventFile, cfg.DIGOUT, BeepStartTime, 0.25, [], [], [], 255, 'Trigger test',1);
     WaitSecs('YieldSecs',0.25);
     log_event(eventFile, cfg.DIGOUT, [], 0.25, [], [], [], 0, 'Trigger test',0);
@@ -449,7 +454,7 @@ nextTrialRequested = 1; %only one space bar transitions from instructions to beg
     end
     audStim = [audStim(:,1)';audStim(:,1)'] .* cfg.AUDIO_AMP; % converting to stereo row vectors 
     WordDuration = size(audStim,2)/stimFs;
-    PsychPortAudio('FillBuffer', pa_handle, audStim);
+    PsychPortAudio('FillBuffer', playback_handle, audStim);
 
     %Start trial on key press (any key)------------------------------
     if nextTrialRequested
@@ -553,7 +558,7 @@ nextTrialRequested = 1; %only one space bar transitions from instructions to beg
     pa_repetitions = 1; 
     pa_when = visualStimTime + spacerVisualAudio_ms/1000;
     pa_waitForStart = 1; %get time of audio start
-    audioStimTime = PsychPortAudio('Start', pa_handle, pa_repetitions, pa_when, pa_waitForStart);
+    audioStimTime = PsychPortAudio('Start', playback_handle, pa_repetitions, pa_when, pa_waitForStart);
     code = TRIG_VISUAL + TRIG_AUDITORY;
     log_event(eventFile, cfg.DIGOUT, audioStimTime, WordDuration, [], trials_spec.stim_conditions(itrial), audioStimFile, code, 'Audio Stim Onset', flipSyncState);
     
@@ -571,7 +576,7 @@ nextTrialRequested = 1; %only one space bar transitions from instructions to beg
     log_event(eventFile, cfg.DIGOUT, fixCrossTime, [], [], trials_spec.stim_conditions(itrial), [], code, 'Fixation Cross', flipSyncState);  
 
     %loading start beep
-    PsychPortAudio('FillBuffer', pa_handle, go_beep);
+    PsychPortAudio('FillBuffer', playback_handle, go_beep);
 
     %Set Jitter time for this trial
     waitTime = round((maxJitter_ms-minJitter_ms).*rand(1,1) + minJitter_ms); % set jittered waittime
@@ -581,7 +586,7 @@ nextTrialRequested = 1; %only one space bar transitions from instructions to beg
     pa_repetitions = 1; 
     pa_when = fixCrossTime + waitTime;
     pa_waitForStart = 1; %get time of audio start
-    audioGoTime = PsychPortAudio('Start', pa_handle, pa_repetitions, pa_when, pa_waitForStart);
+    audioGoTime = PsychPortAudio('Start', playback_handle, pa_repetitions, pa_when, pa_waitForStart);
     code = TRIG_FIXCROSS + TRIG_GO;
     log_event(eventFile, cfg.DIGOUT, audioGoTime, go_beep_duration, [], trials_spec.stim_conditions(itrial), [], code, 'Go Beep', flipSyncState);
 
@@ -606,24 +611,19 @@ nextTrialRequested = 1; %only one space bar transitions from instructions to beg
         Screen('FillRect', ptb_window, cfg.SCREEN_SYNC_COLOR .* flipSyncState, cfg.SCREEN_SYNC_RECT);
 
         %loading stop buzz
-        PsychPortAudio('FillBuffer', pa_handle, stop_buzzer);
+        PsychPortAudio('FillBuffer', playback_handle, stop_buzzer);
 
         %playing buzz at indicated time
         pa_repetitions = 1; 
         pa_waitForStart = 1; %get time of audio start
         if ~cfg.voiceTriggeredStopSignal %%% if STOP is not to be triggered from voice onset, don't use voice detection
             pa_when = audioGoTime + (trials_spec.stop_latency_ms(itrial) + SSD_adjustment_ms)/1000;
-            audioStopTime = PsychPortAudio('Start', pa_handle, pa_repetitions, pa_when, pa_waitForStart);
         elseif cfg.voiceTriggeredStopSignal %%% if STOP is to be triggered from voice onset, use onlineVoiceDetection
-            voiceOnsetDetected = false; % initialize
             WaitSecs('UntilTime',audioGoTime + detection_safety_buffer_ms/1000); % wait so that we aren't triggering detection from the GO beep
-            %while ~voiceOnsetDetected %%% run voice detection function until it detects voice
-                [~, ~, voiceOnsetDetected] = onlineVoiceDetection(deviceReader,detectionOps);
-            %end
+            voice_detection_loop(recording_handle, detection_ops); % wait until voice detected, then continue
             pa_when = 0 + (trials_spec.stop_latency_ms(itrial) + SSD_adjustment_ms)/1000; % STOP initiation = [now] + extra latencies
-            audioStopTime = PsychPortAudio('Start', pa_handle, pa_repetitions, pa_when, pa_waitForStart);
-% % % % % % % % % %             global gg; audioStopTime - gg
         end
+        audioStopTime = PsychPortAudio('Start', playback_handle, pa_repetitions, pa_when, pa_waitForStart); % play buzzer
         code = TRIG_FIXCROSS + TRIG_STOP;
         log_event(eventFile, cfg.DIGOUT, audioStopTime, stop_buzzer_duration, [], trials_spec.stim_conditions(itrial), [], code, 'Stop Buzzer', flipSyncState);
 

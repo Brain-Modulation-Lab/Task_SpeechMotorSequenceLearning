@@ -19,7 +19,8 @@ cfg.SCREEN_SYNC_COLOR = [255 255 255];
 % Paths and configurations
 cfg.PATH_TASK = '~/git/Task_SpeechMotorSequenceLearning';
 cfg.PATH_SOURCEDATA = '~/Data/DBS/sourcedata'; %sourdata root folder 
-cfg.AUDIO_ID = []; 
+cfg.AUDIO_ID_PLAYBACK = []; % playback device index; leave blank for default
+cfg.AUDIO_ID_RECORDING = []; % playback device index (for voice detection only); leave blank for default
 cfg.SCREEN_ID = 0; % prefered screen 
 
 cfg.AUDIO_AMP = 1; %Audio amplitude in linear scale
@@ -36,6 +37,7 @@ cfg.N_GROUPS = 5; % number of unique stimulus groups (subject groups)
 cfg.N_BLOCKS = 10;
 cfg.stopSignalDelay_ms = [500];
 cfg.voiceTriggeredStopSignal = 0; % if true, measure latency of STOP onset from voice onset; if false, measure STOP latency from GO signal
+cfg.loudness_threshold = 0.1; % amplitude threshold for voice detection; range 0 to 1
 
 prompt = {'Subject ID',...
           'Session',...

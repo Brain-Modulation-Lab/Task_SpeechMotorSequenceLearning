@@ -17,11 +17,12 @@ cfg.SCREEN_SYNC_RECT = [0 0 1 1]; %rectangle used for screen sync
 cfg.SCREEN_SYNC_COLOR = [255 255 255];
 
 % Paths and configurations
-cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
-cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %sourdata root folder 
+cfg.PATH_TASK = 'C:\speechres\Task_SpeechMotorSequenceLearning';
+cfg.PATH_SOURCEDATA = 'C:\speechres\DBS\sourcedata'; %sourcedata root folder 
 %cfg.PATH_TASK = '~/git/Task_SpeechMotorSequenceLearning'; 
 %cfg.PATH_SOURCEDATA = '~/Data/DBS/sourcedata'; %source data root folder 
-cfg.AUDIO_ID = []; 
+cfg.AUDIO_ID_PLAYBACK = []; % playback device index; leave blank for default
+cfg.AUDIO_ID_RECORDING = []; % playback device index (for voice detection only); leave blank for default
 cfg.SCREEN_ID = 0; % prefered screen 
 
 cfg.AUDIO_AMP = 1; %Audio amplitude in linear scale
@@ -38,6 +39,8 @@ cfg.N_GROUPS = 5; % number of unique stimulus groups (subject groups)
 cfg.N_BLOCKS = 2;
 cfg.stopSignalDelay_ms = [0];
 cfg.voiceTriggeredStopSignal = 1; % if true, measure latency of STOP onset from voice onset; if false, measure STOP latency from GO signal
+cfg.loudness_threshold = 0.05; % amplitude threshold for voice detection; range 0 to 1
+
 
 prompt = {'Subject ID',...
           'Session',...
@@ -152,7 +155,7 @@ cfg.DIGOUT = 0;
 task_function = [pwd filesep cfg.TASK_FUNCTION];
 if ~isfile(task_function)
     clear onCleanupTasks
-    error('%s.m should be in current working directory',cfg.TASK_FUNCTION);
+    error('%s should be in current working directory',cfg.TASK_FUNCTION);
 end
 copyfile(task_function,[cfg.PATH_LOG filesep cfg.BASE_NAME 'script.m']);
 
