@@ -189,10 +189,10 @@ n_rec_chans = 2; % number of recording channels
 allocated_record_seconds = 10; % 'amountToAllocateSecs' to input to PsychPortAudio(‘GetAudioData’)
 baseline_start_prebeep = 0.5; % time before GO beep to start recording audio baseline
 baseline_stop_prebeep = 0.1; % time before GO beep to stop recording audio baseline
-baseline_memory_ntrials = 10; % number of trials in the past to average across to determine loudness baseline
+baseline_memory_ntrials = 10; % number of trials in the past to get median across to determine loudness baseline
 thresh_baseline_factor = 1.5; % voice detection threshold will be set at the running median baseline times this value
 detection_ops.waitscan_seconds = 0.005; % time to wait between recording scans
-detection_ops.max_dur_seconds = 2.5; % if voice not detected after this many seconds, play the buzzer
+detection_ops.max_dur_seconds = 2.5; % if voice not detected after this many seconds on STOP trials, play the buzzer
 
 baseline_memory = NaN(baseline_memory_ntrials, 1); % initialize
 
@@ -696,7 +696,6 @@ nextTrialRequested = 1; %only one space bar transitions from instructions to beg
 end
 
 %Calculate, display, and print total run duration in mins, close everything
-release(deviceReader) %% release microphone
 runTimeSecs = GetSecs() - startRunTime;
 runTimeMins = runTimeSecs/60;
 logStr =  sprintf('Total run duration: %.3f mins', runTimeMins);

@@ -17,10 +17,13 @@ cfg.SCREEN_SYNC_RECT = [0 0 1 1]; %rectangle used for screen sync
 cfg.SCREEN_SYNC_COLOR = [255 255 255];
 
 % Paths and configurations
-cfg.PATH_TASK = 'C:\speechres\Task_SpeechMotorSequenceLearning';
-cfg.PATH_SOURCEDATA = 'C:\speechres\DBS\sourcedata'; %sourcedata root folder 
-%cfg.PATH_TASK = '~/git/Task_SpeechMotorSequenceLearning'; 
-%cfg.PATH_SOURCEDATA = '~/Data/DBS/sourcedata'; %source data root folder 
+if strcmp('MSI', getenv('COMPUTERNAME')) %% paths for AM test computer
+    cfg.PATH_TASK = 'C:\speechres\Task_SpeechMotorSequenceLearning';
+    cfg.PATH_SOURCEDATA = 'C:\speechres\DBS\sourcedata'; %sourcedata root folder 
+else
+    cfg.PATH_TASK = '~/git/Task_SpeechMotorSequenceLearning'; 
+    cfg.PATH_SOURCEDATA = '~/Data/DBS/sourcedata'; %source data root folder 
+end
 cfg.AUDIO_ID_PLAYBACK = []; % playback device index; leave blank for default
 cfg.AUDIO_ID_RECORDING = []; % playback device index (for voice detection only); leave blank for default
 cfg.SCREEN_ID = 0; % prefered screen 
