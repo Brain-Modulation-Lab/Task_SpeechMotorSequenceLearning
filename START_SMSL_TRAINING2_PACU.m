@@ -20,6 +20,9 @@ cfg.SCREEN_SYNC_COLOR = [255 255 255];
 if strcmp('MSI', getenv('COMPUTERNAME')) %% paths for AM test computer
     cfg.PATH_TASK = 'C:\speechres\Task_SpeechMotorSequenceLearning';
     cfg.PATH_SOURCEDATA = 'C:\speechres\DBS\sourcedata'; %sourcedata root folder 
+elseif strcmp('BML-ALIENWARE', getenv('COMPUTERNAME'))
+    cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
+    cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %sourcedata root folder 
 else
     cfg.PATH_TASK = '~/git/Task_SpeechMotorSequenceLearning'; 
     cfg.PATH_SOURCEDATA = '~/Data/DBS/sourcedata'; %source data root folder 
@@ -29,7 +32,7 @@ cfg.AUDIO_ID_RECORDING = []; % playback device index (for voice detection only);
 cfg.SCREEN_ID = 0; % prefered screen 
 
 cfg.AUDIO_AMP = 1; %Audio amplitude in linear scale
-cfg.SYNC_BEEPS = 0;
+cfg.SYNC_BEEPS = 1; %initialization beeps for synchronization purposes
 cfg.KEYBOARD_ID = []; % prefered keyboard 
 cfg.SKIP_SYNC_TEST = 1; %should screen test be skipped (use only for debugging)
 cfg.CONSERVE_VRAM_MODE = []; %kPsychUseBeampositionQueryWorkaround
