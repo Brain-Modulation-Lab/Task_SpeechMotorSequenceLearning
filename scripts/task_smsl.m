@@ -121,6 +121,24 @@ TRIG_KEYPRESS = 32;
 TRIG_ITG = 64;
 TRIG_ESC = 128;
 
+% set playback device parameters
+pa_reqlatencyclass = 1; % Try to get the lowest latency that is possible under the constraint of reliable playback.  
+pa_freq = []; %loading default freq for devices
+n_playback_channels = 2; %playing as stereo, converting to mono by hardware connector
+
+% set STOP trial and recording device parameters
+detection_safety_buffer_ms = 250; %%% wait this long in ms after GO beep start before starting voice detection (150ms+ recommended)
+suggested_latency_seconds = 0.02; % 'suggestedLatency' to input to PsychPortAudio(‘Open’)
+n_rec_chans = 2; % number of recording channels
+allocated_record_seconds = 10; % 'amountToAllocateSecs' to input to PsychPortAudio(‘GetAudioData’)
+baseline_start_prebeep = 0.5; % time before GO beep to start recording audio baseline
+baseline_echo_buffer = 0.1; %time to wait before recording baseline to let acho fade away
+baseline_duration = 0.4; %duration of the baseline period for the mic triggered stop cue
+baseline_memory_ntrials = 10; % number of trials in the past to get median across to determine loudness baseline
+thresh_baseline_factor = 1.5; % voice detection threshold will be set at the running median baseline times this value
+detection_ops.waitscan_seconds = 0.005; % time to wait between recording scans
+detection_ops.max_dur_seconds = 2.5; % if voice not detected after this many seconds on STOP trials, play the buzzer
+
 %% Initializaing psychtoolbox and celanup structures
 onCleanupTasks = cell(20,1); %creating cleanup cell array container to enforce cleanup order
 onCleanupTasks{20} = onCleanup(@() cd(cfg.PATH_TASK));
@@ -176,23 +194,6 @@ else
     fprintf('The following audio recording device (for voice detection only) was selected ');
     disp(pa_devices(pa_devices.DeviceIndex==cfg.AUDIO_ID_RECORDING,:));
 end
-
-% set playback device parameters
-pa_reqlatencyclass = 1; % Try to get the lowest latency that is possible under the constraint of reliable playback.  
-pa_freq = []; %loading default freq for devices
-n_playback_channels = 2; %playing as stereo, converting to mono by hardware connector
-
-% set STOP trial and recording device parameters
-detection_safety_buffer_ms = 250; %%% wait this long in ms after GO beep start before starting voice detection (150ms+ recommended)
-suggested_latency_seconds = 0.02; % 'suggestedLatency' to input to PsychPortAudio(‘Open’)
-n_rec_chans = 2; % number of recording channels
-allocated_record_seconds = 10; % 'amountToAllocateSecs' to input to PsychPortAudio(‘GetAudioData’)
-baseline_start_prebeep = 0.5; % time before GO beep to start recording audio baseline
-baseline_stop_prebeep = 0.1; % time before GO beep to stop recording audio baseline
-baseline_memory_ntrials = 10; % number of trials in the past to get median across to determine loudness baseline
-thresh_baseline_factor = 1.5; % voice detection threshold will be set at the running median baseline times this value
-detection_ops.waitscan_seconds = 0.005; % time to wait between recording scans
-detection_ops.max_dur_seconds = 2.5; % if voice not detected after this many seconds on STOP trials, play the buzzer
 
 baseline_memory = NaN(baseline_memory_ntrials, 1); % initialize
 
@@ -486,7 +487,7 @@ nextTrialRequested = 1; %only one space bar transitions from instructions to beg
         [keyPressTime, keyCode] = KbWait(cfg.KEYBOARD_ID, 2);
     end
     
-    % Mark stop last stop trial as Stopped, Interrupted or Continued  
+    % Mark last stop trial as Stopped, Interrupted or Continued  
     if any(ismember(find(keyCode),[keyCodeStopped,keyCodeInterrupted,keyCodeContinued]))
     	if any(ismember(find(keyCode), keyCodeStopped))
       	SSD_adjustment_ms = SSD_adjustment_ms + SSD_step_ms; %increasing SSD
@@ -581,8 +582,7 @@ nextTrialRequested = 1; %only one space bar transitions from instructions to beg
 
     % if voice triggering, get baseline sound level to calibrate detection threshold
     if cfg.voiceTriggeredStopSignal
-        baseline_start_time = fixCrossTime + waitTime - baseline_start_prebeep; % start baseline recording at this time before GO cue
-        baseline_stop_time = fixCrossTime + waitTime - baseline_stop_prebeep; % stop baseline recording at this time before GO cue  
+        %baseline_start_time = fixCrossTime + waitTime - baseline_start_prebeep; % start baseline recording at this time before GO cue
         if ~isnan(baseline_memory(1))
             baseline_memory = circshift(baseline_memory, 1); % move each memory value down one slot
             baseline_memory(1) = NaN; % make sure first slot is clear for us to save this trial's baseline into
@@ -593,10 +593,9 @@ nextTrialRequested = 1; %only one space bar transitions from instructions to beg
         PsychPortAudio('GetAudioData', recording_handle, allocated_record_seconds); % initialize recording device with buffer
 
         % record baseline
-        WaitSecs('UntilTime', baseline_start_time); % wait until designated time to start baseline recording
-        PsychPortAudio('Start',recording_handle);  % start recording
-        WaitSecs('UntilTime', baseline_stop_time);
-        baseline_audio = PsychPortAudio('GetAudioData', recording_handle); % get baseline recording
+        WaitSecs(baseline_echo_buffer); % wait until designated time to start baseline recording
+        true_baseline_start_time = PsychPortAudio('Start',recording_handle,1,[],1);  % start recording
+        baseline_audio = PsychPortAudio('GetAudioData', recording_handle,[],baseline_duration); % get baseline recording
         PsychPortAudio('Close', recording_handle)
         
         % record baseline for this trial and compute new adaptive loudness threshold
