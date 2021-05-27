@@ -100,11 +100,11 @@ reallyneedlowlatency = 0; % flag for InitializePsychSound... set to 1 for lower 
 
 % Go cue % audio to play as START cue
 start_cue_audio_file = [cfg.PATH_TASK filesep 'stim' filesep 'beep.wav']; 
-GoBeepAmp = 0.15;
+GoBeepAmp = cfg.GoBeepAmp;
 
 % Stop cue % audio to play on STOP trials
 stoptrial_audio_file = [cfg.PATH_TASK filesep 'stim' filesep 'mixkit-game-show-buzz-in-3090.wav']; 
-StopBeepAmp = 0.14;
+StopBeepAmp = cfg.StopBeepAmp;
 
 % script initialization tones
 InitBeepTone = 500;

@@ -41,6 +41,8 @@ cfg.N_BLOCKS = 1;
 cfg.stopSignalDelay_ms = 500;
 cfg.voiceTriggeredStopSignal = 0; % if true, measure latency of STOP onset from voice onset; if false, measure STOP latency from GO signal
 cfg.loudness_threshold = 0.1; % amplitude threshold for voice detection; range 0 to 1
+cfg.GoBeepAmp = 0.5;
+cfg.StopBeepAmp = 0.2;
 
 prompt = {'Subject ID',...
           'Session',...

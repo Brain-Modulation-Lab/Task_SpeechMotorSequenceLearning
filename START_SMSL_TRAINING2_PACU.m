@@ -37,14 +37,17 @@ cfg.KEYBOARD_ID = []; % prefered keyboard
 cfg.SKIP_SYNC_TEST = 1; %should screen test be skipped (use only for debugging)
 cfg.CONSERVE_VRAM_MODE = []; %kPsychUseBeampositionQueryWorkaround
 
+
 %% Task parameters
 cfg.TASK = 'SMSL'; % name of current task
 cfg.TASK_VERSION = 1; % version number for task
 cfg.TASK_FUNCTION = './scripts/task_smsl.m';
 cfg.N_GROUPS = 5; % number of unique stimulus groups (subject groups)
 cfg.N_BLOCKS = 2;
-cfg.stopSignalDelay_ms = [0];
-cfg.voiceTriggeredStopSignal = 1; % if true, measure latency of STOP onset from voice onset; if false, measure STOP latency from GO signal
+cfg.stopSignalDelay_ms = [600];
+cfg.voiceTriggeredStopSignal = 0; % if true, measure latency of STOP onset from voice onset; if false, measure STOP latency from GO signal
+cfg.GoBeepAmp = 0.5;
+cfg.StopBeepAmp = 0.2;
 
 prompt = {'Subject ID',...
           'Session',...
