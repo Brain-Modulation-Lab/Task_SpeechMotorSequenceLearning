@@ -17,8 +17,16 @@ cfg.SCREEN_SYNC_RECT = [0 0 1 1]; %rectangle used for screen sync
 cfg.SCREEN_SYNC_COLOR = [255 255 255];
 
 % Paths and configurations
-cfg.PATH_TASK = '~/git/Task_SpeechMotorSequenceLearning';
-cfg.PATH_SOURCEDATA = '~/Data/DBS/sourcedata'; %sourdata root folder 
+if strcmp('MSI', getenv('COMPUTERNAME')) %% paths for AM test computer
+    cfg.PATH_TASK = 'C:\speechres\Task_SpeechMotorSequenceLearning';
+    cfg.PATH_SOURCEDATA = 'C:\speechres\DBS\sourcedata'; %sourcedata root folder 
+elseif strcmp('BML-ALIENWARE', getenv('COMPUTERNAME'))
+    cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
+    cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %sourcedata root folder 
+else
+    cfg.PATH_TASK = '~/git/Task_SpeechMotorSequenceLearning'; 
+    cfg.PATH_SOURCEDATA = '~/Data/DBS/sourcedata'; %source data root folder 
+end
 cfg.AUDIO_ID_PLAYBACK = []; % playback device index; leave blank for default
 cfg.AUDIO_ID_RECORDING = []; % playback device index (for voice detection only); leave blank for default
 cfg.SCREEN_ID = 0; % prefered screen 
@@ -35,7 +43,7 @@ cfg.TASK_VERSION = 1; % version number for task
 cfg.TASK_FUNCTION = './scripts/task_smsl.m';
 cfg.N_GROUPS = 5; % number of unique stimulus groups (subject groups)
 cfg.N_BLOCKS = 10;
-cfg.stopSignalDelay_ms = [500];
+cfg.stopSignalDelay_ms = [600];
 cfg.voiceTriggeredStopSignal = 0; % if true, measure latency of STOP onset from voice onset; if false, measure STOP latency from GO signal
 cfg.loudness_threshold = 0.1; % amplitude threshold for voice detection; range 0 to 1
 cfg.GoBeepAmp = 0.5;
