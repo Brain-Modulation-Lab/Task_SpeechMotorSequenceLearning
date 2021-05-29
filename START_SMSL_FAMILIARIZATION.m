@@ -29,10 +29,10 @@ else
 end
 cfg.AUDIO_ID_PLAYBACK = []; % playback device index; leave blank for default
 cfg.AUDIO_ID_RECORDING = []; % playback device index (for voice detection only); leave blank for default
-cfg.SCREEN_ID = 0; % prefered screen 
+cfg.SCREEN_ID = 1; % prefered screen 
 
 cfg.AUDIO_AMP = 1; %Audio amplitude in linear scale
-cfg.SYNC_BEEPS = 0;
+cfg.SYNC_BEEPS = 1;
 cfg.KEYBOARD_ID = []; % prefered keyboard 
 cfg.SKIP_SYNC_TEST = 1; %should screen test be skipped (use only for debugging)
 cfg.CONSERVE_VRAM_MODE = []; %kPsychUseBeampositionQueryWorkaround

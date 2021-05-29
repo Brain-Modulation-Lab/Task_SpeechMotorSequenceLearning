@@ -29,10 +29,10 @@ else
 end
 cfg.AUDIO_ID_PLAYBACK = []; % playback device index; leave blank for default
 cfg.AUDIO_ID_RECORDING = []; % playback device index (for voice detection only); leave blank for default
-cfg.SCREEN_ID = 0; % prefered screen 
+cfg.SCREEN_ID = 1; % prefered screen 
 
 cfg.AUDIO_AMP = 1; %Audio amplitude in linear scale
-cfg.SYNC_BEEPS = 0;
+cfg.SYNC_BEEPS = 1;
 cfg.KEYBOARD_ID = []; % prefered keyboard 
 cfg.SKIP_SYNC_TEST = 1; %should screen test be skipped (use only for debugging)
 cfg.CONSERVE_VRAM_MODE = []; %kPsychUseBeampositionQueryWorkaround
@@ -43,12 +43,11 @@ cfg.TASK_VERSION = 1; % version number for task
 cfg.TASK_FUNCTION = './scripts/task_smsl.m';
 cfg.N_GROUPS = 5; % number of unique stimulus groups (subject groups)
 cfg.N_BLOCKS = 10;
-cfg.stopSignalDelay_ms = [600];
+cfg.stopSignalDelay_ms = 600;
 cfg.voiceTriggeredStopSignal = 0; % if true, measure latency of STOP onset from voice onset; if false, measure STOP latency from GO signal
 cfg.loudness_threshold = 0.1; % amplitude threshold for voice detection; range 0 to 1
 cfg.GoBeepAmp = 0.5;
 cfg.StopBeepAmp = 0.2;
-
 
 prompt = {'Subject ID',...
           'Session',...

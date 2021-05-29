@@ -33,10 +33,18 @@ if experiment_phase == 0
     stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_group_lists_familiarization.xlsx']);
 elseif experiment_phase == 1
     exp_phase_name = 'Training';
-    stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_group_lists_training.xlsx']);
+    if verLessThan('matlab','9.8')
+        stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_group_lists_training.xlsx']);
+    else
+        stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_group_lists_training.xlsx'],'Format','auto');
+    end
 elseif experiment_phase == 2
     exp_phase_name = 'Test';
-    stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_group_lists_test.xlsx']);
+    if verLessThan('matlab','9.8')
+        stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_group_lists_test.xlsx']);
+    else
+        stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_group_lists_test.xlsx'],'Format','auto');
+    end
 else
     error('experiment_phase must equal 0 (familiarization), 1 (practice), or 2 (testing)')
 end
