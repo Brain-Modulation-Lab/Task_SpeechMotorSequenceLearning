@@ -356,9 +356,9 @@ fprintf('Number of trials in run: %i \n',ntrials); % display the total number of
 fprintf('SPACEBAR: next trial\n');
 fprintf('+: Increase stop-signal delay (SSD) by 50ms\n');
 fprintf('-: Decrease stop-signal delay by (SSD) 50ms\n');
-fprintf('S: Mark last stio trial as stopped before speech onset [SSD += 50ms]\n');
+fprintf('S: Mark last stop trial as stopped before speech onset [SSD += 50ms]\n');
 fprintf('I: Mark last stop trial as interrupted\n');
-fprintf('C: Mark last stip trial as continued (failed stop) [SSD -= 50ms]\n');
+fprintf('C: Mark last stop trial as continued (failed stop) [SSD -= 50ms]\n');
 fprintf('ESCAPE: End current run\n');
 WaitSecs(1.0);
 
