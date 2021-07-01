@@ -241,6 +241,7 @@ fprintf('Initializing Screen...');
 AssertOpenGL()
 onCleanupTasks{18} = onCleanup(@() Priority(0));
 Screen('Preference','Verbosity',3); %screen
+Screen('Preference', 'TextRenderer', 1); %required configuration for this script
 %PsychImaging('PrepareConfiguration'); % Open window with default settings:
 screens = Screen('Screens');
 if isempty(cfg.SCREEN_ID)
