@@ -3,7 +3,7 @@
 % Creating configuration structure
 
 % subject and session
-cfg.SESSION_LABEL = 'training'; %type of session ('test', 'training', 'preop', 'intraop')
+cfg.SESSION_LABEL = 'preop'; %type of session ('test', 'training', 'preop', 'intraop')
 if ~isfield(cfg,'SUBJECT')
   cfg.SUBJECT = ''; %subject identifier
   cfg.GROUP_NUM = [];
