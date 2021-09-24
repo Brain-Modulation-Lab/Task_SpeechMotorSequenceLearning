@@ -10,7 +10,7 @@ The /scripts directory contains the following code (under construction):
  	Code loads a specFile corresponding to the subjName (entered in 1st GUI window), groupNum (entered in 2nd GUI window), and Training/Test (corresponding to 0/1 in 3rd GUI window), all fields separated by '_'. These specFiles can be generated using stimListRandomizer script. 
  	For Training sessions, code requires a button press (space bar) to proceed to the next trial, with trials broken into 3 runs of 60 trials (with a break screen automatically appearing after the 60th trial).
 
-**SEQFamiliarization** - This script will run a short 5 trial training run to ensure participant understands directions and provide feedback on productions prior to starting SEQRun script. 
+**SEQFamiliarization** - This script will run a short 10 trial training run to ensure participant understands directions and provide feedback on productions prior to starting SEQRun script. 
 
 **stimListRandomizer** - This function requires the following inputs: subject name, groupNum (1-4, same as groupNum designation in SEQRun), and training/test designation (1 for training, 0 for test) and creates a randomized trial list for 3 trained stimuli during training OR mix of
 novel and trained stimuli for test phase. The first column of .txt output is the stimulus number; 

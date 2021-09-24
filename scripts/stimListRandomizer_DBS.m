@@ -105,13 +105,24 @@ for iblock = 1:nblocks % create separarate randomized versions of the trial list
                     if trials_this_block(trialIndex,3) == 1 && trials_this_block(trialIndex-1,3) == 1 % if this trial and the preceding trial are STOP
                         badOrder = 1; 
                     end
-                    % Check for consecutive same stim trials
-                    if trials_this_block(trialIndex,1) == trials_this_block(trialIndex-1,1)
-                        badOrder = 1;
+                    % test phase = check for 2 consecutive same stim trials
+                    if strcmp(exp_phase_name, 'Test')
+                        if trials_this_block(trialIndex,1) == trials_this_block(trialIndex-1,1) 
+                            badOrder = 1;
+                        end
                     end
                 end
 
                if trialIndex > 2
+                    % training phase - check for 3 consecutive same stim trials
+                    %%% note - the requirement to not have 2 consecutive same-stims was loosened to 3 consecutives after
+                    %%% reducing the number of non-native learned from 4 to 2 
+                    if strcmp(exp_phase_name, 'Training')
+                        if trials_this_block(trialIndex,1) == trials_this_block(trialIndex-1,1) && ...
+                                trials_this_block(trialIndex,1) == trials_this_block(trialIndex-2,1)
+                            badOrder = 1;
+                        end
+                    end
                     %For test phase, check for 3 consecutive same-condition trials (non-native learned [1] vs. non-native novel [2] vs. native [3])
                     if strcmp(exp_phase_name, 'Test')
                         if [trials_this_block(trialIndex,2) == trials_this_block(trialIndex-1,2)] && ... % this trial == previous trial and....
