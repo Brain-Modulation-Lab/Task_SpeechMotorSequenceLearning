@@ -3,6 +3,8 @@
 % Creating configuration structure
 
 % subject and session
+%%%% NB: to avoid errors, use subject name that starts with letter and
+%%%% ends with 4 numbers
 cfg.SESSION_LABEL = 'training'; %type of session ('test', 'training', 'preop', 'intraop')
 if ~isfield(cfg,'SUBJECT')
   cfg.SUBJECT = ''; %subject identifier
@@ -12,23 +14,23 @@ elseif ~isfield(cfg,'GROUP_NUM')
 end
 cfg.DATA_TYPE = 'task'; %BIDS data type 'beh' for behavioral and task data. 
 
-% rectangle for photodiodo synchronization
+% rectangle for photodiode synchronization
 cfg.SCREEN_SYNC_RECT = [0 0 1 1]; %rectangle used for screen sync
 cfg.SCREEN_SYNC_COLOR = [255 255 255];
 
 % Paths and configurations
-if strcmp('MSI', getenv('COMPUTERNAME')) %% paths for AM test computer
-    cfg.PATH_TASK = 'C:\speechres\Task_SpeechMotorSequenceLearning';
-    cfg.PATH_SOURCEDATA = 'C:\speechres\DBS\sourcedata'; %sourcedata root folder 
-    cfg.SCREEN_ID = 0; % prefered screen 
+if strcmp('MSI', getenv('COMPUTERNAME')) %% paths for Andrew Meier test computer
+    cfg.PATH_TASK = 'C:\Users\amsme\OneDrive\Documents\code\matlab\Task_SpeechMotorSequenceLearning';
+    cfg.PATH_SOURCEDATA = 'C:\Users\amsme\OneDrive\Documents\code\matlab\DBS\sourcedata'; %sourcedata root folder 
+    cfg.SCREEN_ID = 2; % preferred screen 
 elseif strcmp('BML-ALIENWARE', getenv('COMPUTERNAME'))
     cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
     cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %sourcedata root folder 
-    cfg.SCREEN_ID = 1; % prefered screen 
+    cfg.SCREEN_ID = 1; % preferred screen 
 else
     cfg.PATH_TASK = '~/git/Task_SpeechMotorSequenceLearning'; 
     cfg.PATH_SOURCEDATA = '~/Data/DBS/sourcedata'; %source data root folder 
-    cfg.SCREEN_ID = 1; % prefered screen 
+    cfg.SCREEN_ID = 1; % preferred screen 
 end
 cfg.AUDIO_ID_PLAYBACK = []; % playback device index; leave blank for default
 cfg.AUDIO_ID_RECORDING = []; % playback device index (for voice detection only); leave blank for default
@@ -154,7 +156,7 @@ cfg.SPEC_FILENAME = [cfg.PATH_LOG filesep cfg.BASE_NAME 'spec-' cfg.EXP_PHASE '.
 %open diary for this run (saves PTB initialization output)
 diary(cfg.LOG_FILENAME);
 onCleanupTasks{10} = onCleanup(@() diary('off'));
-fprintf('\nConfiuration struture:\n');
+fprintf('\nConfiguration structure:\n');
 disp(cfg)
 
 % No triggers during training session
@@ -164,7 +166,7 @@ cfg.DIGOUT = 0;
 task_function = [pwd filesep cfg.TASK_FUNCTION];
 if ~isfile(task_function)
     clear onCleanupTasks
-    error('%s.m should be in current working directory',cfg.TASK_FUNCTION);
+    error('%s should be in current working directory',cfg.TASK_FUNCTION);
 end
 copyfile(task_function,[cfg.PATH_LOG filesep cfg.BASE_NAME 'script.m']);
 
