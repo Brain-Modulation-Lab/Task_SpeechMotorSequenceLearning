@@ -154,7 +154,9 @@ disp(cfg)
 digout = 0;
 if exist('xippmex','file')==3 
     try 
-        digout = xippmex();
+        digout = xippmex('tcp');
+        xippmex('addoper',129);
+        onCleanupTasks{9} = onCleanup(@() xippmex('close'));  
     catch err
         warning('xippmex failed %s: %s\n', err.identifier, err.message);
     end
@@ -164,7 +166,7 @@ if digout
     fprintf('Ripple system found.\n')
     
     %ceck status of recording
-    rippleRec = xippmex('trial');
+    rippleRec = xippmex('trial',129);
     
     if isempty(strfind(rippleRec.filebase,cfg.SUBJECT))
         warning('Ripple''s file basename (%s) does NOT contain the subject''s id (%s)',rippleRec.filebase,cfg.SUBJECT);
@@ -175,7 +177,6 @@ if digout
         fprintf('Ripple system recording to file %s%04d\n', rippleRec.filebase, rippleRec.incr_num);
     end
     
-    onCleanupTasks{9} = onCleanup(@() xippmex('close'));  
 else
     fprintf(2,['\n***************************************',...
              '\n** Ripple system NOT found! DRY RUN! **',...
