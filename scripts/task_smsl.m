@@ -127,6 +127,7 @@ pa_freq = []; %loading default freq for devices
 n_playback_channels = 2; %playing as stereo, converting to mono by hardware connector
 
 % set STOP trial and recording device parameters
+min_stop_trial_latency_ms = 0; %%% do not allow nomainal stop signal delay go below this number of milliseconds
 detection_safety_buffer_ms = 250; %%% wait this long in ms after GO beep start before starting voice detection (150ms+ recommended)
 suggested_latency_seconds = 0.02; % 'suggestedLatency' to input to PsychPortAudio(‘Open’)
 n_rec_chans = 2; % number of recording channels
@@ -334,6 +335,8 @@ trials_spec = readtable(cfg.SPEC_FILENAME,'Delimiter','\t','FileType','text');
 first_stop_trial = find(trials_spec.is_stoptrial,1); % for displaying stoptrial instructions during familiarization
 ntrials = height(trials_spec);
 trials_spec.stim_conditions = num2str(trials_spec.stim_conditions);
+base_SSD_ms = min(trials_spec.stop_latency_ms(trials_spec.is_stoptrial==1)); % for determining min SSD adjustment
+min_SSD_adjustment_ms = min_stop_trial_latency_ms - base_SSD_ms; % do not let SSD_adjustment_ms go below this value
 
 %% Embedding de-indetified metadata into pairs of label and value triggers
 log_metadata(cfg,eventFile);
@@ -378,7 +381,7 @@ WaitSecs(1.0);
   flipSyncState = ~flipSyncState;
   Screen('FillRect', ptb_window, cfg.SCREEN_SYNC_COLOR .* flipSyncState, cfg.SCREEN_SYNC_RECT);
   [~, welcomeMesageTime] = Screen('Flip', ptb_window);
-  log_event(eventFile, cfg.DIGOUT, welcomeMesageTime, [], [], [], [], 0, 'Melcome message', flipSyncState);  
+  log_event(eventFile, cfg.DIGOUT, welcomeMesageTime, [], [], [], [], 0, 'Welcome message', flipSyncState);  
   disp('Press Spacebar to proceed to experiment')  %Experimenter instructions
 
   %Waiting for keypress to start experiment
@@ -477,6 +480,7 @@ nextTrialRequested = 1; %only one space bar transitions from instructions to beg
           str = sprintf('SSD adj + %i ms = %i ms',SSD_step_ms,SSD_adjustment_ms); 
         elseif any(ismember(find(keyCode), keyCodeDecrease))
           SSD_adjustment_ms = SSD_adjustment_ms - SSD_step_ms; %decreasing SSD
+          SSD_adjustment_ms = max([SSD_adjustment_ms, min_SSD_adjustment_ms]); % if adjustment is below minimum allowed, correct it
           str = sprintf('SSD adj - %i ms = %i ms',SSD_step_ms,SSD_adjustment_ms); 
         else
           str = 'incorrect key';
@@ -497,6 +501,7 @@ nextTrialRequested = 1; %only one space bar transitions from instructions to beg
         str = sprintf('Interrupted: SSD adj = %i ms',SSD_adjustment_ms);
       elseif any(ismember(find(keyCode), keyCodeContinued))
       	SSD_adjustment_ms = SSD_adjustment_ms - SSD_step_ms; %decreasing SSD
+        SSD_adjustment_ms = max([SSD_adjustment_ms, min_SSD_adjustment_ms]); % if adjustment is below minimum allowed, correct it
         str = sprintf('Continued: SSD adj - %i ms = %i ms',SSD_step_ms,SSD_adjustment_ms); 
       else
         str = 'incorrect key';
