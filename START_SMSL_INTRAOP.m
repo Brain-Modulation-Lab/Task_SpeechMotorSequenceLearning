@@ -3,6 +3,8 @@
 % Creating configuration structure
 
 % subject and session
+%%%% NB: to avoid errors, use subject name that starts with letter and
+%%%% ends with 4 numbers
 cfg.SESSION_LABEL = 'intraop'; %type of session ('test', 'training', 'preop', 'intraop')
 if ~isfield(cfg,'SUBJECT')
   cfg.SUBJECT = ''; %subject identifier
@@ -16,12 +18,23 @@ cfg.DATA_TYPE = 'task'; %BIDS data type 'beh' for behavioral and task data.
 cfg.SCREEN_SYNC_RECT = [0 0 20 20]; %rectangle used for screen sync
 cfg.SCREEN_SYNC_COLOR = [255 255 255];
 
+if strcmp('MSI', getenv('COMPUTERNAME')) %% paths for Andrew Meier test computer
+    cfg.PATH_TASK = 'C:\Users\amsme\OneDrive\Documents\code\matlab\Task_SpeechMotorSequenceLearning';
+    cfg.PATH_SOURCEDATA = 'C:\Users\amsme\OneDrive\Documents\code\matlab\DBS\sourcedata'; %source data root folder 
+    cfg.SCREEN_ID = 2; % preferred screen 
+elseif strcmp('BML-ALIENWARE', getenv('COMPUTERNAME'))
+    cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
+    cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %source data root folder 
+    cfg.SCREEN_ID = 3; % preferred screen 
+else
+    cfg.PATH_TASK = '~/git/Task_SpeechMotorSequenceLearning'; 
+    cfg.PATH_SOURCEDATA = '~/Data/DBS/sourcedata'; %source data root folder 
+    cfg.SCREEN_ID = 1; % preferred screen 
+end
+
 % Paths and configurations
-cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
-cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %sourdata root folder 
 cfg.AUDIO_ID_PLAYBACK = []; % playback device index; leave blank for default
 cfg.AUDIO_ID_RECORDING = []; % playback device index (for voice detection only); leave blank for default
-cfg.SCREEN_ID = 3; % prefered screen 
 
 cfg.AUDIO_AMP = 1; %Audio amplitude in linear scale
 cfg.SYNC_BEEPS = 0;
@@ -31,9 +44,9 @@ cfg.CONSERVE_VRAM_MODE = []; %kPsychUseBeampositionQueryWorkaround
 
 %% Task parameters
 cfg.TASK = 'SMSL'; % name of current task
-cfg.TASK_VERSION = 1; % version number for task
+cfg.TASK_VERSION = 3; % version number for task
 cfg.TASK_FUNCTION = './scripts/task_smsl.m';
-cfg.N_GROUPS = 5; % number of unique stimulus groups (subject groups)
+cfg.N_GROUPS = 7; % number of unique stimulus groups (subject groups)
 cfg.N_BLOCKS = 3;
 cfg.stopSignalDelay_ms = 600;
 cfg.voiceTriggeredStopSignal = 0; % if true, measure latency of STOP onset from voice onset; if false, measure STOP latency from GO signal
@@ -45,7 +58,7 @@ cfg.StopBeepAmp = 0.2;
 prompt = {'Subject ID',...
           'Session',...
           'Run (leave empty for new run)',...
-          'Group Number (1-5)',...
+          'Group Number (1-7)',...
           sprintf('Experiment Phase?\n(0 = Familiarization, 1 = Training, 2 = Testing)'),...
           'Number of blocks',...
           'Stop Signal Delay (ms). [May be vector for Training]'};
