@@ -21,7 +21,7 @@ cfg.SCREEN_SYNC_COLOR = [255 255 255];
 if strcmp('MSI', getenv('COMPUTERNAME')) %% paths for Andrew Meier test computer
     cfg.PATH_TASK = 'C:\Users\amsme\OneDrive\Documents\code\matlab\Task_SpeechMotorSequenceLearning';
     cfg.PATH_SOURCEDATA = 'C:\Users\amsme\OneDrive\Documents\code\matlab\DBS\sourcedata'; %source data root folder 
-    cfg.SCREEN_ID = 2; % preferred screen 
+    cfg.SCREEN_ID = 0; % preferred screen 
 elseif strcmp('BML-ALIENWARE', getenv('COMPUTERNAME'))
     cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
     cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %source data root folder 
@@ -44,7 +44,7 @@ cfg.CONSERVE_VRAM_MODE = []; %kPsychUseBeampositionQueryWorkaround
 
 %% Task parameters
 cfg.TASK = 'SMSL'; % name of current task
-cfg.TASK_VERSION = 3; % version number for task
+cfg.TASK_VERSION = 1; % version number for task
 cfg.TASK_FUNCTION = './scripts/task_smsl.m';
 cfg.N_GROUPS = 7; % number of unique stimulus groups (subject groups)
 cfg.N_BLOCKS = 3;
