@@ -31,6 +31,7 @@ else
     cfg.PATH_SOURCEDATA = '~/Data/DBS/sourcedata'; %source data root folder 
     cfg.SCREEN_ID = 1; % preferred screen 
 end
+cfg.SCALE_FONT = 0.75;
 
 % Paths and configurations
 cfg.AUDIO_ID_PLAYBACK = []; % playback device index; leave blank for default

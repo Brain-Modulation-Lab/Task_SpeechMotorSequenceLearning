@@ -24,6 +24,7 @@ function task_smsl(cfg)
 %   cfg.AUDIO_ID_PLAYBACK            int, preferred audio device ID
 %   cfg.AUDIO_AMP           float, audio amplitude. 
 %   cfg.SCREEN_ID           int, preferred screen ID 
+%   cfg.SCALE_FONT          float, scaling factor for font
 %   cfg.SKIP_SYNC_TEST      bool, should screen synchronization test be skipped? 
 %   cfg.CONSERVE_VRAM_MODE	int, Psvchtoolbox ConserveVRAM Screen preference code
 %   cfg.SCREEN_SYNC_COLOR   int(3), color of the corner square used for synchronization
@@ -71,7 +72,7 @@ SSD_adjustment_ms = 0; %adjustement over the presepcified SSD in the spec file i
 keypress_duration_ms = 100; %duration of key press event
 
 %Fonts
-instructionFontSize = 70;
+instructionFontSize =  round(70 * cfg.SCALE_FONT) ;%70;
 stimFontSize = 200;
 fixcrossFontSize = 100;
 stopFontSize = 100;
