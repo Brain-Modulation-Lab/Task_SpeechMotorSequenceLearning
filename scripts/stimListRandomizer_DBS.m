@@ -28,25 +28,33 @@ experiment_phase = cfg.EXP_PHASE_NUM;
 nblocks = cfg.N_BLOCKS;
 
 % select experimental phase, load stim index data
-if experiment_phase == 0
-    exp_phase_name = 'Familiarization'; 
-    stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_group_lists_familiarization.xlsx']);
-elseif experiment_phase == 1
-    exp_phase_name = 'Training';
-    if verLessThan('matlab','9.8')
-        stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_group_lists_training.xlsx']);
-    else
-        stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_group_lists_training.xlsx'],'Format','auto');
-    end
-elseif experiment_phase == 2
-    exp_phase_name = 'Test';
-    if verLessThan('matlab','9.8')
-        stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_group_lists_test.xlsx']);
-    else
-        stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_group_lists_test.xlsx'],'Format','auto');
-    end
-else
-    error('experiment_phase must equal 0 (familiarization), 1 (practice), or 2 (testing)')
+switch experiment_phase
+    case 0
+        exp_phase_name = 'Familiarization'; 
+        stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_group_lists_familiarization.xlsx']);
+    case 1
+        exp_phase_name = 'Training';
+        if verLessThan('matlab','9.8')
+            stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_group_lists_training.xlsx']);
+        else
+            stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_group_lists_training.xlsx'],'Format','auto');
+        end
+    case 1.5
+        exp_phase_name = 'Preop';
+        if verLessThan('matlab','9.8')
+            stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_group_lists_preop.xlsx']);
+        else
+            stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_group_lists_preop.xlsx'],'Format','auto');
+        end
+    case 2
+        exp_phase_name = 'Test';
+        if verLessThan('matlab','9.8')
+            stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_group_lists_test.xlsx']);
+        else
+            stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_group_lists_test.xlsx'],'Format','auto');
+        end
+    otherwise
+        error('experiment_phase must equal 0 (familiarization), 1 (practice), or 2 (testing)')
 end
     
 numTrialsPerBlock = height(stimtable); 
@@ -78,6 +86,7 @@ specFile = cfg.SPEC_FILENAME;
 % Next, randomly permute the trials and check to see if they
 % meet all criteria for consecutive trials. If not, then redo
 % until a good randomized order is achieved.
+%%%% randomization requirements for Training and Preop are identical
 trial_list_all_blocks = [];
 for iblock = 1:nblocks % create separarate randomized versions of the trial list within each block, then concatenate
     %%% familiarization - don't randomize, use order specified in stim_group_list file
@@ -85,8 +94,8 @@ for iblock = 1:nblocks % create separarate randomized versions of the trial list
         trials_this_block = trialList; 
     end
         
-    %%% training and testing - randomize order under certain limitations
-    if any(strcmp(exp_phase_name, {'Training','Test'}))
+    %%% training, preop, and testing - randomize order under certain limitations
+    if any(strcmp(exp_phase_name, {'Training','Preop','Test'}))
         badOrder = 1;
         while (badOrder > 0)
             indices = randperm(numTrialsPerBlock);
@@ -117,7 +126,7 @@ for iblock = 1:nblocks % create separarate randomized versions of the trial list
                     % training phase - check for 3 consecutive same stim trials
                     %%% note - the requirement to not have 2 consecutive same-stims was loosened to 3 consecutives after
                     %%% reducing the number of non-native learned from 4 to 2 
-                    if strcmp(exp_phase_name, 'Training')
+                    if strcmp(exp_phase_name, 'Training') || strcmp(exp_phase_name, 'Preop')
                         if trials_this_block(trialIndex,1) == trials_this_block(trialIndex-1,1) && ...
                                 trials_this_block(trialIndex,1) == trials_this_block(trialIndex-2,1)
                             badOrder = 1;

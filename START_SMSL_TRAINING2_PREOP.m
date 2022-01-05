@@ -17,10 +17,10 @@ cfg.SCREEN_SYNC_RECT = [0 0 1 1]; %rectangle used for screen sync
 cfg.SCREEN_SYNC_COLOR = [255 255 255];
 
 % Paths and configurations
-if strcmp('MSI', getenv('COMPUTERNAME')) %% paths for AM test computer
-    cfg.PATH_TASK = 'C:\speechres\Task_SpeechMotorSequenceLearning';
-    cfg.PATH_SOURCEDATA = 'C:\speechres\DBS\sourcedata'; %sourcedata root folder 
-    cfg.SCREEN_ID = 0; % prefered screen 
+if strcmp('MSI', getenv('COMPUTERNAME')) %% paths for Andrew Meier test computer
+    cfg.PATH_TASK = 'C:\Users\amsme\OneDrive\Documents\code\matlab\Task_SpeechMotorSequenceLearning';
+    cfg.PATH_SOURCEDATA = 'C:\Users\amsme\OneDrive\Documents\code\matlab\DBS\sourcedata'; %source data root folder 
+    cfg.SCREEN_ID = 2; % preferred screen 
 elseif strcmp('BML-ALIENWARE', getenv('COMPUTERNAME'))
     cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
     cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %sourcedata root folder 
@@ -45,7 +45,7 @@ cfg.TASK = 'SMSL'; % name of current task
 cfg.TASK_VERSION = 1; % version number for task
 cfg.TASK_FUNCTION = './scripts/task_smsl.m';
 cfg.N_GROUPS = 7; % number of unique stimulus groups (subject groups)
-cfg.N_BLOCKS = 2;
+cfg.N_BLOCKS = 1; % changed from 2 to 1, because the 'preop' session 10min rather than 5min
 cfg.stopSignalDelay_ms = [600];
 cfg.voiceTriggeredStopSignal = 0; % if true, measure latency of STOP onset from voice onset; if false, measure STOP latency from GO signal
 cfg.GoBeepAmp = 0.5;
@@ -55,12 +55,12 @@ prompt = {'Subject ID',...
           'Session',...
           'Run (leave empty for new run)',...
           'Group Number (1-7)',...
-          sprintf('Experiment Phase?\n(0 = Familiarization, 1 = Training, 2 = Testing)'),...
+          sprintf('Experiment Phase?\n(0 = Familiarization, 1 = Training, 1.5 = Preop, 2 = Testing)'),...
           'Number of blocks',...
           'Stop Signal Delay (ms). [May be vector for Training]'};
 dlgtitle = 'Experimenter Input';
 dims = [1 50];
-definput = {cfg.SUBJECT,cfg.SESSION_LABEL,'',num2str(cfg.GROUP_NUM),'1',num2str(cfg.N_BLOCKS),num2str(cfg.stopSignalDelay_ms)};
+definput = {cfg.SUBJECT,cfg.SESSION_LABEL,'',num2str(cfg.GROUP_NUM),'1.5',num2str(cfg.N_BLOCKS),num2str(cfg.stopSignalDelay_ms)};
 answer = inputdlg(prompt,dlgtitle,dims,definput);
 
 cfg.SUBJECT = strtrim(answer{1});
@@ -75,10 +75,12 @@ switch cfg.EXP_PHASE_NUM
         cfg.EXP_PHASE = 'Familiarization';
     case 1
         cfg.EXP_PHASE = 'Training';
+    case 1.5
+        cfg.EXP_PHASE = 'Preop'; 
     case 2
         cfg.EXP_PHASE = 'Test';
     otherwise
-        error('Experiment Phase must be one of: 0 = Familiarization, 1 = Training, 2 = Testing') 
+        error('Experiment Phase must be one of: 0 = Familiarization, 1 = Training, 1.5 = Preop, 2 = Testing') 
 end
 
 % Check if all parameters input into GUI
