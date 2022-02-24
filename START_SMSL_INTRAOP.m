@@ -21,21 +21,30 @@ cfg.SCREEN_SYNC_COLOR = [255 255 255];
 if strcmp('MSI', getenv('COMPUTERNAME')) %% paths for Andrew Meier test computer
     cfg.PATH_TASK = 'C:\Users\amsme\OneDrive\Documents\code\matlab\Task_SpeechMotorSequenceLearning';
     cfg.PATH_SOURCEDATA = 'C:\Users\amsme\OneDrive\Documents\code\matlab\DBS\sourcedata'; %source data root folder 
-    cfg.SCREEN_ID = 2; % preferred screen 
+    cfg.SCREEN_ID = 2; % preferred screen   
+	cfg.AUDIO_DEVICE = '' ;
+    cfg.MIC_DEVICE = '';
+    cfg.HOST_AUDIO_API_NAME = '';
 elseif strcmp('BML-ALIENWARE', getenv('COMPUTERNAME'))
     cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
     cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %source data root folder 
     cfg.SCREEN_ID = 3; % preferred screen 
+    cfg.AUDIO_DEVICE = 'Speakers (Radial USB Pro)' ;
+    cfg.MIC_DEVICE = 'Microphone (Realtek(R) Audio)';
+    cfg.HOST_AUDIO_API_NAME = 'Windows WASAPI';
 else
     cfg.PATH_TASK = '~/git/Task_SpeechMotorSequenceLearning'; 
     cfg.PATH_SOURCEDATA = '~/Data/DBS/sourcedata'; %source data root folder 
     cfg.SCREEN_ID = 1; % preferred screen 
+	cfg.AUDIO_DEVICE = '' ;
+    cfg.MIC_DEVICE = '';
+    cfg.HOST_AUDIO_API_NAME = '';
 end
 cfg.SCALE_FONT = 0.75;
 
 % Paths and configurations
-cfg.AUDIO_ID_PLAYBACK = []; % playback device index; leave blank for default
-cfg.AUDIO_ID_RECORDING = []; % playback device index (for voice detection only); leave blank for default
+% cfg.AUDIO_ID_PLAYBACK = []; % playback device index; leave blank for default
+% cfg.AUDIO_ID_RECORDING = []; % playback device index (for voice detection only); leave blank for default
 
 cfg.AUDIO_AMP = 1; %Audio amplitude in linear scale
 cfg.SYNC_BEEPS = 0;
@@ -184,19 +193,23 @@ if digout
     
     if isempty(strfind(rippleRec.filebase,cfg.SUBJECT))
         warning('Ripple''s file basename (%s) does NOT contain the subject''s id (%s)',rippleRec.filebase,cfg.SUBJECT);
+        str = input('Press enter to continue or ctrl-c to exit\n','s');
     end
     if ~strcmp(rippleRec.status, 'recording') 
         warning('Ripple system connected but NOT recording. DRY RUN.');
+        str = input('Press enter to continue or ctrl-c to exit\n','s');
     else
         fprintf('Ripple system recording to file %s%04d\n', rippleRec.filebase, rippleRec.incr_num);
     end
-    
+     
 else
     fprintf(2,['\n***************************************',...
              '\n** Ripple system NOT found! DRY RUN! **',...
              '\n***************************************\n']);
+	str = input('Press enter to continue or ctrl-c to exit\n','s');
 end
 cfg.DIGOUT = digout;
+
 
 %% Saving task function in log folder for documentation
 task_function = [pwd filesep cfg.TASK_FUNCTION];

@@ -180,21 +180,48 @@ fprintf('Initializing Sound...\n');
 InitializePsychSound(reallyneedlowlatency); 
 
 % getting audio playback device id
+% pa_devices = struct2table(PsychPortAudio('GetDevices'));
+% if isempty(cfg.AUDIO_ID_PLAYBACK) || ~ismember(cfg.AUDIO_ID_PLAYBACK,pa_devices.DeviceIndex)
+%     fprintf('\nNo audio device was selected, using default. Choose AUDIO_ID from this table:\n'); 
+%     disp(pa_devices);
+% else
+%     fprintf('The following audio playback device was selected');
+%     disp(pa_devices(pa_devices.DeviceIndex==cfg.AUDIO_ID_PLAYBACK,:));
+% end
 pa_devices = struct2table(PsychPortAudio('GetDevices'));
-if isempty(cfg.AUDIO_ID_PLAYBACK) || ~ismember(cfg.AUDIO_ID_PLAYBACK,pa_devices.DeviceIndex)
-    fprintf('\nNo audio device was selected, using default. Choose AUDIO_ID from this table:\n'); 
+pa_devices_sel = contains(pa_devices.HostAudioAPIName,cfg.HOST_AUDIO_API_NAME) & contains(pa_devices.DeviceName,cfg.AUDIO_DEVICE); 
+if sum(pa_devices_sel) == 0 
     disp(pa_devices);
+    error('%s - %s not found. Choose one from the list of available audio devices',cfg.HOST_AUDIO_API_NAME,cfg.AUDIO_DEVICE);
+elseif sum(pa_devices_sel) > 1
+    disp(pa_devices);
+    error('%s - %s matches more than one device. Choose one from the list of available audio devices',cfg.HOST_AUDIO_API_NAME,cfg.AUDIO_DEVICE);
 else
-    fprintf('The following audio playback device was selected');
-    disp(pa_devices(pa_devices.DeviceIndex==cfg.AUDIO_ID_PLAYBACK,:));
+    fprintf('The following audio device was selected');
+    disp(pa_devices(pa_devices_sel,:));
+    cfg.AUDIO_ID_PLAYBACK = pa_devices.DeviceIndex(pa_devices_sel);
 end
+
 % getting audio recording device id
-if isempty(cfg.AUDIO_ID_RECORDING) || ~ismember(cfg.AUDIO_ID_RECORDING,pa_devices.DeviceIndex)
-    fprintf('\nNo audio device was selected, using default. Choose AUDIO_ID from this table:\n'); 
+% if isempty(cfg.AUDIO_ID_RECORDING) || ~ismember(cfg.AUDIO_ID_RECORDING,pa_devices.DeviceIndex)
+%     fprintf('\nNo audio device was selected, using default. Choose AUDIO_ID from this table:\n'); 
+%     disp(pa_devices);
+% else
+%     fprintf('The following audio recording device (for voice detection only) was selected ');
+%     disp(pa_devices(pa_devices.DeviceIndex==cfg.AUDIO_ID_RECORDING,:));
+% end
+pa_devices = struct2table(PsychPortAudio('GetDevices'));
+pa_devices_sel = contains(pa_devices.HostAudioAPIName,cfg.HOST_AUDIO_API_NAME) & contains(pa_devices.DeviceName,cfg.MIC_DEVICE); 
+if sum(pa_devices_sel) == 0 
     disp(pa_devices);
+    error('%s - %s not found. Choose one from the list of available audio devices',cfg.HOST_AUDIO_API_NAME,cfg.MIC_DEVICE);
+elseif sum(pa_devices_sel) > 1
+    disp(pa_devices);
+    error('%s - %s matches more than one device. Choose one from the list of available audio devices',cfg.HOST_AUDIO_API_NAME,cfg.MIC_DEVICE);
 else
-    fprintf('The following audio recording device (for voice detection only) was selected ');
-    disp(pa_devices(pa_devices.DeviceIndex==cfg.AUDIO_ID_RECORDING,:));
+    fprintf('The following audio device was selected as microphone');
+    disp(pa_devices(pa_devices_sel,:));
+    cfg.AUDIO_ID_RECORDING = pa_devices.DeviceIndex(pa_devices_sel);
 end
 
 baseline_memory = NaN(baseline_memory_ntrials, 1); % initialize
@@ -356,7 +383,7 @@ for i = 1:5
 end
 
 %% Initialization messages for experimenter
-
+fprintf('\nStarting run %i at %s \n',cfg.RUN_ID,datestr(now,'HH:MM:SS am'));
 fprintf('Number of trials in run: %i \n',ntrials); % display the total number of trials
 fprintf('SPACEBAR: next trial\n');
 fprintf('+: Increase stop-signal delay (SSD) by 50ms\n');
