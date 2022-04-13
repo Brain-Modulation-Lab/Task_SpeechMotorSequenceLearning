@@ -19,9 +19,9 @@ cfg.SCREEN_SYNC_RECT = [0 0 20 20]; %rectangle used for screen sync
 cfg.SCREEN_SYNC_COLOR = [255 255 255];
 
 if strcmp('MSI', getenv('COMPUTERNAME')) %% paths for Andrew Meier test computer
-    cfg.PATH_TASK = 'C:\Users\amsme\OneDrive\Documents\code\matlab\Task_SpeechMotorSequenceLearning';
+    cfg.PATH_TASK = 'C:\Users\amsme\OneDrive\Documents\code\matlab\packages\Task_SpeechMotorSequenceLearning';
     cfg.PATH_SOURCEDATA = 'C:\Users\amsme\OneDrive\Documents\code\matlab\DBS\sourcedata'; %source data root folder 
-    cfg.SCREEN_ID = 0; % preferred screen 
+    cfg.SCREEN_ID = 1; % preferred screen 
 elseif strcmp('BML-ALIENWARE', getenv('COMPUTERNAME'))
     cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
     cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %source data root folder 
