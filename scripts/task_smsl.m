@@ -71,7 +71,7 @@ SSD_adjustment_ms = 0; %adjustement over the presepcified SSD in the spec file i
 keypress_duration_ms = 100; %duration of key press event
 
 %Fonts
-instructionFontSize = 70;
+instructionFontSize = 50; % before 70
 stimFontSize = 200;
 fixcrossFontSize = 100;
 stopFontSize = 100;

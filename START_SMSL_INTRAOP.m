@@ -5,9 +5,9 @@
 % subject and session
 %%%% NB: to avoid errors, use subject name that starts with letter and
 %%%% ends with 4 numbers
-cfg.SESSION_LABEL = 'intraop'; %type of session ('test', 'training', 'preop', 'intraop')
+cfg.SESSION_LABEL = 'test'; %type of session ('test', 'training', 'preop', 'intraop')
 if ~isfield(cfg,'SUBJECT')
-  cfg.SUBJECT = ''; %subject identifier
+  cfg.SUBJECT = 'test0506'; %subject identifier
   cfg.GROUP_NUM = [];
 elseif ~isfield(cfg,'GROUP_NUM')
 	cfg.GROUP_NUM = [];
@@ -18,14 +18,19 @@ cfg.DATA_TYPE = 'task'; %BIDS data type 'beh' for behavioral and task data.
 cfg.SCREEN_SYNC_RECT = [0 0 20 20]; %rectangle used for screen sync
 cfg.SCREEN_SYNC_COLOR = [255 255 255];
 
+
 if strcmp('MSI', getenv('COMPUTERNAME')) %% paths for Andrew Meier test computer
     cfg.PATH_TASK = 'C:\Users\amsme\OneDrive\Documents\code\matlab\packages\Task_SpeechMotorSequenceLearning';
     cfg.PATH_SOURCEDATA = 'C:\Users\amsme\OneDrive\Documents\code\matlab\DBS\sourcedata'; %source data root folder 
     cfg.SCREEN_ID = 1; % preferred screen 
-elseif strcmp('BML-ALIENWARE', getenv('COMPUTERNAME'))
+elseif strcmpi('BML-ALIENWARE',getenv('COMPUTERNAME'))
     cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
     cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %source data root folder 
     cfg.SCREEN_ID = 3; % preferred screen 
+elseif strcmpi('BML-ALIENWARE2',getenv('COMPUTERNAME'))
+    cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
+    cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %source data root folder 
+    cfg.SCREEN_ID = 2; % preferred screen 
 else
     cfg.PATH_TASK = '~/git/Task_SpeechMotorSequenceLearning'; 
     cfg.PATH_SOURCEDATA = '~/Data/DBS/sourcedata'; %source data root folder 
