@@ -49,7 +49,7 @@ cfg.CONSERVE_VRAM_MODE = []; %kPsychUseBeampositionQueryWorkaround
 
 %% Task parameters
 cfg.TASK = 'SMSL'; % name of current task
-cfg.TASK_VERSION = 1; % version number for task
+cfg.TASK_VERSION = 4; % version number for task
 cfg.TASK_FUNCTION = './scripts/task_smsl.m';
 cfg.N_GROUPS = 7; % number of unique stimulus groups (subject groups)
 cfg.N_BLOCKS = 3;
