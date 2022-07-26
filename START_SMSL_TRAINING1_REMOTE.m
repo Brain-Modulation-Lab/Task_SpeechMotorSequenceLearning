@@ -20,9 +20,9 @@ cfg.SCREEN_SYNC_COLOR = [255 255 255];
 
 % Paths and configurations
 if strcmp('MSI', getenv('COMPUTERNAME')) %% paths for Andrew Meier test computer
-    cfg.PATH_TASK = 'C:\Users\amsme\OneDrive\Documents\code\matlab\packages\Task_SpeechMotorSequenceLearning';
-    cfg.PATH_SOURCEDATA = 'C:\Users\amsme\OneDrive\Documents\code\matlab\DBS\sourcedata'; %sourcedata root folder 
-    cfg.SCREEN_ID = 0; % preferred screen 
+      cfg.PATH_TASK = 'C:\docs\code\matlab\packages\Task_SpeechMotorSequenceLearning';
+    cfg.PATH_SOURCEDATA = 'C:\docs\code\matlab\DBS\sourcedata'; %source data root folder 
+    cfg.SCREEN_ID = 2; % preferred screen 
 elseif strcmp('BML-ALIENWARE', getenv('COMPUTERNAME'))
     cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
     cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %sourcedata root folder 
@@ -53,11 +53,11 @@ cfg.loudness_threshold = 0.1; % amplitude threshold for voice detection; range 0
 cfg.GoBeepAmp = 0.5;
 cfg.StopBeepAmp = 0.2;
 
-prompt = {'Subject ID',...
+prompt = {'Subject ID [string followed by 4 numbers]',...
           'Session',...
           'Run (leave empty for new run)',...
           'Group Number (1-7)',...
-          sprintf('Experiment Phase?\n(0 = Familiarization, 1 = Training, 2 = Testing)'),...
+          sprintf('Experiment Phase?\n(0 = Familiarization, 1 = Training, 1.5 = Preop, 2 = Testing)'),...
           'Number of blocks',...
           'Stop Signal Delay (ms). [May be vector for Training]'};
 dlgtitle = 'Experimenter Input';
@@ -80,7 +80,7 @@ switch cfg.EXP_PHASE_NUM
     case 2
         cfg.EXP_PHASE = 'Test';
     otherwise
-        error('Experiment Phase must be one of: 0 = Familiarization, 1 = Training, 2 = Testing') 
+        error('Experiment Phase must be one of: 0 = Familiarization, 1 = Training, 1.5 = Preop, 2 = Testing') 
 end
 
 % Check if all parameters input into GUI

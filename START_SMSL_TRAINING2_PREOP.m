@@ -18,8 +18,8 @@ cfg.SCREEN_SYNC_COLOR = [255 255 255];
 
 % Paths and configurations
 if strcmp('MSI', getenv('COMPUTERNAME')) %% paths for Andrew Meier test computer
-    cfg.PATH_TASK = 'C:\Users\amsme\OneDrive\Documents\code\matlab\packages\Task_SpeechMotorSequenceLearning';
-    cfg.PATH_SOURCEDATA = 'C:\Users\amsme\OneDrive\Documents\code\matlab\DBS\sourcedata'; %source data root folder 
+    cfg.PATH_TASK = 'C:\docs\code\matlab\packages\Task_SpeechMotorSequenceLearning';
+    cfg.PATH_SOURCEDATA = 'C:\docs\code\matlab\DBS\sourcedata'; %source data root folder 
     cfg.SCREEN_ID = 2; % preferred screen 
 elseif strcmp('BML-ALIENWARE', getenv('COMPUTERNAME'))
     cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
@@ -51,7 +51,7 @@ cfg.voiceTriggeredStopSignal = 0; % if true, measure latency of STOP onset from 
 cfg.GoBeepAmp = 0.5;
 cfg.StopBeepAmp = 0.2;
 
-prompt = {'Subject ID',...
+prompt = {'Subject ID [string followed by 4 numbers]',...
           'Session',...
           'Run (leave empty for new run)',...
           'Group Number (1-7)',...

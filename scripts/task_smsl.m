@@ -692,7 +692,7 @@ nextTrialRequested = 1; %only one space bar transitions from instructions to beg
 
     % message to experimenter
     elapsedTime = keyPressTime - startRunTime;
-    fprintf('Trial #%2i of %i copleted at %02d:%02d \n', itrial, ntrials, floor(elapsedTime/60),round(mod(elapsedTime,60)));     
+    fprintf('Trial #%2i of %i completed at %02d:%02d \n', itrial, ntrials, floor(elapsedTime/60),round(mod(elapsedTime,60)));     
     
     % trial completed, update log file
     actualWaitTime = audioGoTime + go_beep_duration/2 - audioStimTime - WordDuration;
