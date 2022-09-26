@@ -5,9 +5,9 @@
 % subject and session
 %%%% NB: to avoid errors, use subject name that starts with letter and
 %%%% ends with 4 numbers
-cfg.SESSION_LABEL = 'test'; %type of session ('test', 'training', 'preop', 'intraop')
+cfg.SESSION_LABEL = 'intraop'; %type of session ('test', 'training', 'preop', 'intraop')
 if ~isfield(cfg,'SUBJECT')
-  cfg.SUBJECT = 'test0506'; %subject identifier
+  cfg.SUBJECT = ''; %subject identifier
   cfg.GROUP_NUM = [];
 elseif ~isfield(cfg,'GROUP_NUM')
 	cfg.GROUP_NUM = [];
@@ -172,7 +172,8 @@ disp(cfg)
 digout = 0;
 if exist('xippmex','file')==3 
     try 
-        digout = xippmex();
+        digout = xippmex('tcp');
+        xippmex('addoper',129);
     catch err
         warning('xippmex failed %s: %s\n', err.identifier, err.message);
     end
