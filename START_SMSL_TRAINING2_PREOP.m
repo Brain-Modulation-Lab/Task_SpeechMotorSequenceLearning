@@ -20,15 +20,15 @@ cfg.SCREEN_SYNC_COLOR = [255 255 255];
 if any(strcmp({'MSI','DESKTOP-T5P1L4S'}, getenv('COMPUTERNAME'))) %% paths for Andrew Meier test computers
     cfg.PATH_TASK = 'C:\docs\code\matlab\packages\Task_SpeechMotorSequenceLearning';
     cfg.PATH_SOURCEDATA = 'C:\docs\code\matlab\DBS\sourcedata'; %source data root folder 
-    cfg.SCREEN_ID = 2; % preferred screen 
+    cfg.SCREEN_ID = 1; % preferred screen 
 elseif strcmp('BML-ALIENWARE', getenv('COMPUTERNAME'))
     cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
     cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %sourcedata root folder 
-    cfg.SCREEN_ID = 0; % prefered screen 
+    cfg.SCREEN_ID = 0; % preferred screen 
 else
     cfg.PATH_TASK = '~/git/Task_SpeechMotorSequenceLearning'; 
     cfg.PATH_SOURCEDATA = '~/Data/DBS/sourcedata'; %source data root folder 
-    cfg.SCREEN_ID = 0; % prefered screen 
+    cfg.SCREEN_ID = 0; % preferred screen 
 end
 cfg.AUDIO_ID_PLAYBACK = []; % playback device index; leave blank for default
 cfg.AUDIO_ID_RECORDING = []; % playback device index (for voice detection only); leave blank for default
@@ -104,7 +104,7 @@ end
 %% Initializing cleanup hooks
 onCleanupTasks = cell(10,1); 
 
-% Warnings
+%% Warnings
 warning('on','all'); %enabling warnings
 beep off
 
@@ -151,6 +151,9 @@ cfg.LOG_FILENAME = [cfg.PATH_LOG filesep cfg.BASE_NAME 'log.txt'];
 cfg.EVENT_FILENAME = [cfg.PATH_LOG filesep cfg.BASE_NAME 'events.tsv'];
 cfg.TRIAL_FILENAME = [cfg.PATH_LOG filesep cfg.BASE_NAME 'trials-' cfg.EXP_PHASE '.tsv']; %randomized trials info
 cfg.SPEC_FILENAME = [cfg.PATH_LOG filesep cfg.BASE_NAME 'spec-' cfg.EXP_PHASE '.tsv']; %randomized trials info
+
+% look for a premade stim order file under the following filename; if not present, run the stim randomizer and make a new stim order
+cfg.SPEC_PREMADE_FILENAME = [cfg.PATH_LOG filesep 'sub-' cfg.SUBJECT '_ses-' cfg.SESSION_LABEL '_task-' cfg.TASK '_spec-prepared-' cfg.EXP_PHASE '.tsv'];
 
 %% Starting diary
 %open diary for this run (saves PTB initialization output)

@@ -22,7 +22,7 @@ cfg.SCREEN_SYNC_COLOR = [255 255 255];
 if any(strcmp({'MSI','DESKTOP-T5P1L4S'}, getenv('COMPUTERNAME'))) %% paths for Andrew Meier test computers
     cfg.PATH_TASK = 'C:\docs\code\matlab\packages\Task_SpeechMotorSequenceLearning';
     cfg.PATH_SOURCEDATA = 'C:\docs\code\matlab\DBS\sourcedata'; %source data root folder 
-    cfg.SCREEN_ID = 2; % preferred screen 
+    cfg.SCREEN_ID = 0; % preferred screen 
 elseif strcmpi('BML-ALIENWARE',getenv('COMPUTERNAME'))
     cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
     cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %source data root folder 
@@ -111,7 +111,7 @@ end
 %% Initializing cleanup hooks
 onCleanupTasks = cell(10,1); 
 
-%% Warngins
+%% Warnings
 warning('on','all'); %enabling warnings
 beep off
 
@@ -158,6 +158,9 @@ cfg.LOG_FILENAME = [cfg.PATH_LOG filesep cfg.BASE_NAME 'log.txt'];
 cfg.EVENT_FILENAME = [cfg.PATH_LOG filesep cfg.BASE_NAME 'events.tsv'];
 cfg.TRIAL_FILENAME = [cfg.PATH_LOG filesep cfg.BASE_NAME 'trials-' cfg.EXP_PHASE '.tsv']; %randomized trials info
 cfg.SPEC_FILENAME = [cfg.PATH_LOG filesep cfg.BASE_NAME 'spec-' cfg.EXP_PHASE '.tsv']; %randomized trials info
+
+% look for a premade stim order file under the following filename; if not present, run the stim randomizer and make a new stim order
+cfg.SPEC_PREMADE_FILENAME = [cfg.PATH_LOG filesep 'sub-' cfg.SUBJECT '_ses-' cfg.SESSION_LABEL '_task-' cfg.TASK '_spec-prepared-' cfg.EXP_PHASE '.tsv'];
 
 %% Starting diary
 %open diary for this run (saves PTB initialization output)

@@ -16,8 +16,7 @@ function task_smsl(cfg)
 %   cfg.TASK_VERSION        int, task version
 %   cfg.RUN_ID              int, id of the run
 %   cfg.PATH_TASK           str, path to task folder Stimuli folder
-%   cfg.LOG_FILENAME        str, full filename (with path) to log file. 
-%   cfg.EVENT_FILENAME      str, full filename (with path) to BIDS events file.  
+%   cfg.LOG_FILENAME        str, full filename (with path) to log file. sc
 %   cfg.TRIAL_FILENAME      str, full filename (with path) to table specifying the run's trials
 %   cfg.SPEC_FILENAME       str, full filename (with path) for trial randomization table
 %   cfg.KEYBOARD_ID         int, preferred keyboard by ID
@@ -140,7 +139,7 @@ thresh_baseline_factor = 1.5; % voice detection threshold will be set at the run
 detection_ops.waitscan_seconds = 0.005; % time to wait between recording scans
 detection_ops.max_dur_seconds = 2.5; % if voice not detected after this many seconds on STOP trials, play the buzzer
 
-%% Initializaing psychtoolbox and celanup structures
+%% Initializaing psychtoolbox and cleanup structures
 onCleanupTasks = cell(20,1); %creating cleanup cell array container to enforce cleanup order
 onCleanupTasks{20} = onCleanup(@() cd(cfg.PATH_TASK));
 onCleanupTasks{1} = onCleanup(@() fprintf('\nRUN ID: %i\n',cfg.RUN_ID));
@@ -237,7 +236,6 @@ stop_buzzer = [stop_buzzer(:,1)';stop_buzzer(:,1)'] .* StopBeepAmp .* cfg.AUDIO_
 stop_buzzer_duration = size(go_beep,2) ./ stop_buzzer_Fs;
 
 %% Initialize Screen
-
 fprintf('Initializing Screen...'); 
 AssertOpenGL()
 onCleanupTasks{18} = onCleanup(@() Priority(0));
@@ -280,6 +278,13 @@ fprintf(eventFile,'onset\tduration\tsample\ttrial_type\tstim_file\tvalue\tevent_
 % The if-esle below will check what the last trial of the
 % log file is. Save the index of this trial to a variable, and then at the
 % start of the main loop switch 1:numTrial to var:num Trials.
+
+% look for a premade stim order file under the following filename; if not present, stim randomizer may be rerun to make a new stim order
+if exist(cfg.SPEC_PREMADE_FILENAME,'file')
+    cfg.load_premade_specfile = 1;
+else
+    cfg.load_premade_specfile = 0;
+end
 
 trialFileName = cfg.TRIAL_FILENAME;
 if ~isfile(trialFileName) % if first run, create a log file
@@ -332,7 +337,7 @@ end
 
 %% loading trial specification file----------------------------------------------------------
 trials_spec = readtable(cfg.SPEC_FILENAME,'Delimiter','\t','FileType','text');
-first_stop_trial = find(trials_spec.is_stoptrial,1); % for displaying stoptrial instructions during familiarization
+ first_stop_trial = find(trials_spec.is_stoptrial,1); % for displaying stoptrial instructions during familiarization
 ntrials = height(trials_spec);
 trials_spec.stim_conditions = num2str(trials_spec.stim_conditions);
 base_SSD_ms = min(trials_spec.stop_latency_ms(trials_spec.is_stoptrial==1)); % for determining min SSD adjustment

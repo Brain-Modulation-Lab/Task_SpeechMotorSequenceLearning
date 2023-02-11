@@ -16,9 +16,17 @@
 % fourth column indicates (for stop trials only) what the stop latency is in milliseconds
 
 %Code developed by Hilary Miller and Frank Guenther
-%%% modified for DBS by Andrew Meier 2021-3-31
+%%% modified for DBS by Andrew Meier 2023/2/10
 
 function trials = stimListRandomizer_DBS(cfg) 
+
+% if a specfile has already been created, load it instead of running the randomizer
+if cfg.load_premade_specfile == 1
+    trials = readtable(cfg.SPEC_PREMADE_FILENAME,'Delimiter','\t','FileType','text');
+    fprintf('\n\n%s \n %s \n', 'Found premade specfile; loading trial order specification from:', cfg.SPEC_PREMADE_FILENAME)
+    return
+end
+
 
 % makes sure that rng seed isn't always the same
 rng('shuffle');  
@@ -79,9 +87,6 @@ end
 
 % trialList column 1 = stim identity index, column 2 = condition.... non-native learned [1], non-native trained [2], native [3] 
 trialList = [stim_inds_selected, stimtable.condition, stimtable.stop_trial];
-
-%Set output file name
-specFile = cfg.SPEC_FILENAME;
 
 % Next, randomly permute the trials and check to see if they
 % meet all criteria for consecutive trials. If not, then redo
