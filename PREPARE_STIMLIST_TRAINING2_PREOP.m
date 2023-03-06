@@ -123,6 +123,7 @@ disp(cfg)
 fprintf('\n running stim list randomizer...')
 
 cfg.load_premade_specfile = 0; 
+cd('.\scripts')
 trials_spec = stimListRandomizer_DBS(cfg);
 writetable(trials_spec,cfg.SPEC_PREMADE_FILENAME,'Delimiter','\t','FileType','text');
 

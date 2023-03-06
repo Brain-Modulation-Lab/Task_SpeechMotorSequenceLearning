@@ -25,6 +25,10 @@ elseif strcmp('BML-ALIENWARE', getenv('COMPUTERNAME'))
     cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
     cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %sourcedata root folder 
     cfg.SCREEN_ID = 0; % preferred screen 
+elseif strcmp('BML-ALIENWARE2', getenv('COMPUTERNAME'))
+    cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
+    cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %sourcedata root folder 
+    cfg.SCREEN_ID = 0; % preferred screen 
 else
     cfg.PATH_TASK = '~/git/Task_SpeechMotorSequenceLearning'; 
     cfg.PATH_SOURCEDATA = '~/Data/DBS/sourcedata'; %source data root folder 
