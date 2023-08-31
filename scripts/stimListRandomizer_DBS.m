@@ -6,7 +6,7 @@
 % Inputs: 
 %   1. subj_name = name of subject
 %   2. group_num = stimulus group subject is assigned to (1-5); make sure subject has same group across all 3 experimental phases
-%   3. experiment_phase = 0 (familiarization), 1 (practice), or 2 (testing)
+%   3. experiment_phase = 0 (familiarization), 1 (practice), 1.5 (preop), 2 (testing), or 3/3.5 (no-learning preop/intraop)
 %   4. nblocks = number of times the entire stim set is repeated (in a new randomized order)
 
 
@@ -16,7 +16,7 @@
 % fourth column indicates (for stop trials only) what the stop latency is in milliseconds
 
 %Code developed by Hilary Miller and Frank Guenther
-%%% modified for DBS by Andrew Meier 2023/2/10
+%%% modified for DBS by Andrew Meier 2023/9/10
 
 function trials = stimListRandomizer_DBS(cfg) 
 
@@ -61,8 +61,15 @@ switch experiment_phase
         else
             stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_group_lists_test.xlsx'],'Format','auto');
         end
+    case {3, 3.5}  
+        exp_phase_name = 'No_Learning';
+        if verLessThan('matlab','9.8')
+            stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_list_no_learning.xlsx']);
+        else
+            stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_list_no_learning.xlsx'],'Format','auto');
+        end
     otherwise
-        error('experiment_phase must equal 0 (familiarization), 1 (practice), or 2 (testing)')
+        error('experiment_phase must equal 0 (familiarization), 1 (practice), 1.5 (preop), 2 (testing), 3 (no-learning preop), or 3.5 (no-learning intraop)')
 end
     
 numTrialsPerBlock = height(stimtable); 
@@ -100,7 +107,7 @@ for iblock = 1:nblocks % create separarate randomized versions of the trial list
     end
         
     %%% training, preop, and testing - randomize order under certain limitations
-    if any(strcmp(exp_phase_name, {'Training','Preop','Test'}))
+    if any(strcmp(exp_phase_name, {'Training','Preop','Test','No_Learning'}))
         badOrder = 1;
         while (badOrder > 0)
             indices = randperm(numTrialsPerBlock);
@@ -119,8 +126,8 @@ for iblock = 1:nblocks % create separarate randomized versions of the trial list
                     if trials_this_block(trialIndex,3) == 1 && trials_this_block(trialIndex-1,3) == 1 % if this trial and the preceding trial are STOP
                         badOrder = 1; 
                     end
-                    % test phase = check for 2 consecutive same stim trials
-                    if strcmp(exp_phase_name, 'Test')
+                    % test phase or no-learning phase: check for 2 consecutive same-stim trials
+                    if any(strcmp(exp_phase_name, {'Test', 'No_Learning'}))
                         if trials_this_block(trialIndex,1) == trials_this_block(trialIndex-1,1) 
                             badOrder = 1;
                         end
@@ -137,7 +144,7 @@ for iblock = 1:nblocks % create separarate randomized versions of the trial list
                             badOrder = 1;
                         end
                     end
-                    %For test phase, check for 3 consecutive same-condition trials (non-native learned [1] vs. non-native novel [2] vs. native [3])
+                    % For test phase, check for 3 consecutive same-condition trials (non-native learned [1] vs. non-native novel [2] vs. native [3])
                     if strcmp(exp_phase_name, 'Test')
                         if [trials_this_block(trialIndex,2) == trials_this_block(trialIndex-1,2)] && ... % this trial == previous trial and....
                                 [trials_this_block(trialIndex,2) == trials_this_block(trialIndex-2,2)] % .... this trial == two trials back
@@ -164,9 +171,7 @@ switch exp_phase_name
         stop_latency_inds = randperm(length(stop_latencies_expanded), total_stoptrials); % one STOP latency for each STOP trial
         stop_latencies_by_trial = stop_latencies_expanded(stop_latency_inds);
         trial_list_all_blocks(is_stoptrial,4) = stop_latencies_by_trial; % assign latencies to stop trials
-    case 'Familiarization' % use fixed stop latency for familiarization
-        trial_list_all_blocks(is_stoptrial,4) = cfg.stopSignalDelay_ms(1); % assign latencies to stop trials
-    case 'Test' % use fixed stop latency for familiarization
+    case {'Familiarization', 'Test', 'No_Learning'} % use fixed stop latency
         trial_list_all_blocks(is_stoptrial,4) = cfg.stopSignalDelay_ms(1); % assign latencies to stop trials
 end
    
