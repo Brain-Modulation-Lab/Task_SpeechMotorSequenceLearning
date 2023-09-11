@@ -29,6 +29,10 @@ if any(strcmp({'MSI','DESKTOP-T5P1L4S'}, getenv('COMPUTERNAME'))) %% paths for A
 elseif strcmp('BML-ALIENWARE', getenv('COMPUTERNAME'))
     cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
     cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %sourcedata root folder 
+elseif strcmp('BML-ALIENWARE2', getenv('COMPUTERNAME'))
+    cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
+    cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %sourcedata root folder 
+
 else
     cfg.PATH_TASK = '~/git/Task_SpeechMotorSequenceLearning'; 
     cfg.PATH_SOURCEDATA = '~/Data/DBS/sourcedata'; %source data root folder 
