@@ -6,7 +6,7 @@
 % Inputs: 
 %   1. subj_name = name of subject
 %   2. group_num = stimulus group subject is assigned to (1-5); make sure subject has same group across all 3 experimental phases
-%   3. experiment_phase = 0 (familiarization), 1 (practice), 1.5 (preop), 2 (testing), or 3/3.5 (no-learning preop/intraop)
+%   3. experiment_phase = 0 (familiarization), 1 (practice), 1.5 (preop), 2 (testing), 2.5 (no-learning familiarization), or 3/3.5 (no-learning preop/intraop)
 %   4. nblocks = number of times the entire stim set is repeated (in a new randomized order)
 
 
@@ -61,6 +61,13 @@ switch experiment_phase
         else
             stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_group_lists_test.xlsx'],'Format','auto');
         end
+    case 2.5
+        exp_phase_name = 'No_Learning_Familiarization';
+        if verLessThan('matlab','9.8')
+            stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_list_no_learning_familiarization.xlsx']);
+        else
+            stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_list_no_learning_familiarization.xlsx'], 'Format','auto'); 
+        end
     case {3, 3.5}  
         exp_phase_name = 'No_Learning';
         if verLessThan('matlab','9.8')
@@ -69,7 +76,7 @@ switch experiment_phase
             stimtable = readtable([cfg.PATH_TASK filesep 'stim' filesep 'stim_list_no_learning.xlsx'],'Format','auto');
         end
     otherwise
-        error('experiment_phase must equal 0 (familiarization), 1 (practice), 1.5 (preop), 2 (testing), 3 (no-learning preop), or 3.5 (no-learning intraop)')
+        error('experiment_phase must equal 0 (familiarization), 1 (practice), 1.5 (preop), 2 (testing), 2.5 (no-learning familiarization), 3 (no-learning preop), or 3.5 (no-learning intraop)')
 end
     
 numTrialsPerBlock = height(stimtable); 
@@ -99,10 +106,10 @@ trialList = [stim_inds_selected, stimtable.condition, stimtable.stop_trial];
 % meet all criteria for consecutive trials. If not, then redo
 % until a good randomized order is achieved.
 %%%% randomization requirements for Training and Preop are identical
-trial_list_all_blocks = [];
+                    trial_list_all_blocks = [];
 for iblock = 1:nblocks % create separarate randomized versions of the trial list within each block, then concatenate
     %%% familiarization - don't randomize, use order specified in stim_group_list file
-    if strcmp(exp_phase_name, 'Familiarization')
+    if any(strcmp(exp_phase_name,{'Familiarization', 'No_Learning_Familiarization'}))
         trials_this_block = trialList; 
     end
         
@@ -171,7 +178,7 @@ switch exp_phase_name
         stop_latency_inds = randperm(length(stop_latencies_expanded), total_stoptrials); % one STOP latency for each STOP trial
         stop_latencies_by_trial = stop_latencies_expanded(stop_latency_inds);
         trial_list_all_blocks(is_stoptrial,4) = stop_latencies_by_trial; % assign latencies to stop trials
-    case {'Familiarization', 'Test', 'No_Learning'} % use fixed stop latency
+    case {'Familiarization', 'Test', 'No_Learning_Familiarization', 'No_Learning'} % use fixed stop latency
         trial_list_all_blocks(is_stoptrial,4) = cfg.stopSignalDelay_ms(1); % assign latencies to stop trials
 end
    

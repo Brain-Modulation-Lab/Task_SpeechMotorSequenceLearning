@@ -32,7 +32,7 @@ function task_smsl(cfg)
 %                             for Cash Lab rig it is a structure with fields
 %                               cfg.DIGOUT.portObj - io64 object
 %                               cfg.DIGOUT.portAddress - address of port
-%   cfg.EXP_PHASE           str, {'Familiarization', 'Training', 'Test'} 
+%   cfg.EXP_PHASE           str, {'Familiarization', 'Training', 'Test', 'No_Learning_Familiarization', 'No_Learning_Preop', 'No_Learning_Intraop'} 
 %   cfg.SYNC_BEEPS          bool, should synchronization beeps be played at
 %                           the beggining of the task?
 %
@@ -410,7 +410,7 @@ WaitSecs(1.0);
 % ----------------------------------------------------------------------------
 startRunTime = GetSecs();
 nextTrialRequested = 1; %only one space bar transitions from instructions to beginning of experiment
- for itrial = startTrial:ntrials
+for itrial = startTrial:ntrials
       
     if (mod(itrial,ntrials_between_breaks) == 0) && (itrial ~= ntrials)  % Break after every X trials, but not on the last
         Screen('TextSize', ptb_window, instructionFontSize); %return to smaller text size (from larger fixation +)
@@ -526,7 +526,7 @@ nextTrialRequested = 1; %only one space bar transitions from instructions to beg
 
     
     % if we're about to show the first STOP trial during the familiarization phase, give STOP trial instructions
-    if  strcmp(experiment_phase,'Familiarization') && itrial == first_stop_trial
+    if  any(strcmp(experiment_phase,{'Familiarization', 'nolearning_familiarization'})) && itrial == first_stop_trial
         Screen('TextSize', ptb_window, instructionFontSize); %return to smaller text size (from larger fixation +)
         DrawFormattedText(ptb_window, stoptrial_instruction_message, 'center', 'center', white, [], [], [], 1.5);
 
