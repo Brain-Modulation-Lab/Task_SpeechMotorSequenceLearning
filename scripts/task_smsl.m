@@ -32,7 +32,7 @@ function task_smsl(cfg)
 %                             for Cash Lab rig it is a structure with fields
 %                               cfg.DIGOUT.portObj - io64 object
 %                               cfg.DIGOUT.portAddress - address of port
-%   cfg.EXP_PHASE           str, {'Familiarization', 'Training', 'Test'} 
+%   cfg.EXP_PHASE           str, {'Familiarization', 'Training', 'Test', 'No_Learning_Familiarization', 'No_Learning_Preop', 'No_Learning_Intraop'} 
 %   cfg.SYNC_BEEPS          bool, should synchronization beeps be played at
 %                           the beggining of the task?
 %
@@ -53,9 +53,6 @@ function task_smsl(cfg)
 
 experiment_phase = cfg.EXP_PHASE;
 subjName = cfg.SUBJECT;
-
-%Options
-ntrials_between_breaks = 48; % have subject take a break after this many trials
 
 %Times      
 go_trial_duration_ms = 1500; %%% time in milliseconds from onset of  GO cue to enabling keypress for next trial 
@@ -293,6 +290,7 @@ if ~isfile(trialFileName) % if first run, create a log file
     startTrial = 1;
     %randomizing trials 
     trials_spec = stimListRandomizer_DBS(cfg);
+    ntrials_between_breaks = round(height(trials_spec) / cfg.N_BLOCKS); % have subject take a break after this many trials
     writetable(trials_spec,cfg.SPEC_FILENAME,'Delimiter','\t','FileType','text');
 else % if log present, ask user if they would like to continue from the last run, or start over
     prompt = ('\nThis run has already been started for this subject.  Do you want to continue where you left off? [Y/N]: ');
@@ -337,7 +335,7 @@ end
 
 %% loading trial specification file----------------------------------------------------------
 trials_spec = readtable(cfg.SPEC_FILENAME,'Delimiter','\t','FileType','text');
- first_stop_trial = find(trials_spec.is_stoptrial,1); % for displaying stoptrial instructions during familiarization
+first_stop_trial = find(trials_spec.is_stoptrial,1); % for displaying stoptrial instructions during familiarization
 ntrials = height(trials_spec);
 trials_spec.stim_conditions = num2str(trials_spec.stim_conditions);
 base_SSD_ms = min(trials_spec.stop_latency_ms(trials_spec.is_stoptrial==1)); % for determining min SSD adjustment
@@ -402,20 +400,18 @@ WaitSecs(1.0);
  
 
   fprintf('Running Subject %s\n', subjName)
-  
-  % set up au
 
 %% ----------------------------------------------------------------------------
 % -------------------------- MAIN TRIAL LOOP ---------------------------------
 % ----------------------------------------------------------------------------
 startRunTime = GetSecs();
 nextTrialRequested = 1; %only one space bar transitions from instructions to beginning of experiment
- for itrial = startTrial:ntrials
+for itrial = startTrial:ntrials
       
-    if (mod(itrial,ntrials_between_breaks) == 0) && (itrial ~= ntrials)  % Break after every X trials, but not on the last
-        Screen('TextSize', ptb_window, instructionFontSize); %return to smaller text size (from larger fixation +)
+     if (mod(itrial,ntrials_between_breaks) == 0) && (itrial ~= ntrials)  % Break after every X trials  , but not on the last
+        Screen('TextSize', ptb_window, instructionFontSize); %return to smaller text size  (from larger fixation +)
         DrawFormattedText(ptb_window, break_message, 'center', 'center', white, [], [], [], 1.5);
-
+ 
         % Display break message
         flipSyncState = ~flipSyncState;
         Screen('FillRect', ptb_window, cfg.SCREEN_SYNC_COLOR .* flipSyncState, cfg.SCREEN_SYNC_RECT);
@@ -526,7 +522,7 @@ nextTrialRequested = 1; %only one space bar transitions from instructions to beg
 
     
     % if we're about to show the first STOP trial during the familiarization phase, give STOP trial instructions
-    if  strcmp(experiment_phase,'Familiarization') && itrial == first_stop_trial
+    if  any(strcmp(experiment_phase,{'Familiarization', 'nolearning_familiarization'})) && itrial == first_stop_trial
         Screen('TextSize', ptb_window, instructionFontSize); %return to smaller text size (from larger fixation +)
         DrawFormattedText(ptb_window, stoptrial_instruction_message, 'center', 'center', white, [], [], [], 1.5);
 
