@@ -38,7 +38,7 @@ else
 end
 
 % Paths and configurations
-cfg.AUDIO_ID_PLAYBACK = []; % playback device index; leave blank for default
+cfg.AUDIO_ID_PLAYBACK = 8; % playback device index; leave blank for default
 cfg.AUDIO_ID_RECORDING = []; % playback device index (for voice detection only); leave blank for default
 
 cfg.AUDIO_AMP = 1; %Audio amplitude in linear scale
