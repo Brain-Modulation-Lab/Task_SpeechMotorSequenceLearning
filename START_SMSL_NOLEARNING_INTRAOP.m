@@ -1,6 +1,7 @@
 % Launcher script for intraop session of Speech Motor Sequence Learning Task (no-learning version)
 % Creating configuration structure
-
+% check protocol
+cfg.protocol = 'udp';
 % subject and session
 cfg.SESSION_LABEL = 'nolearning_intraop'; %type of session ('test', 'training', 'preop', 'intraop', 'nolearning_preop', 'nolearning_intraop')
 if ~isfield(cfg,'SUBJECT')
@@ -33,7 +34,7 @@ else
     cfg.PATH_SOURCEDATA = '~/Data/DBS/sourcedata'; %source data root folder 
     cfg.SCREEN_ID = 0; % preferred screen 
 end
-cfg.AUDIO_ID_PLAYBACK = []; % playback device index; leave blank for default
+cfg.AUDIO_ID_PLAYBACK = 5; % playback device index; leave blank for default
 cfg.AUDIO_ID_RECORDING = []; % playback device index (for voice detection only); leave blank for default
 
 cfg.AUDIO_AMP = 1; %Audio amplitude in linear scale

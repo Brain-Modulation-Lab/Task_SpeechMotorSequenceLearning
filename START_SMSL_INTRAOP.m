@@ -2,6 +2,8 @@
 % task
 % Creating configuration structure
 
+% check protocol
+cfg.protocol = 'udp';
 % subject and session
 %%%% NB: to avoid errors, use subject name that starts with letter and
 %%%% ends with 4 numbers
@@ -30,7 +32,7 @@ elseif strcmpi('BML-ALIENWARE',getenv('COMPUTERNAME'))
 elseif strcmpi('BML-ALIENWARE2',getenv('COMPUTERNAME'))
     cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
     cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %source data root folder 
-    cfg.SCREEN_ID = 2; % preferred screen 
+    cfg.SCREEN_ID =2; % preferred screen 
 else
     cfg.PATH_TASK = '~/git/Task_SpeechMotorSequenceLearning'; 
     cfg.PATH_SOURCEDATA = '~/Data/DBS/sourcedata'; %source data root folder 
@@ -38,7 +40,7 @@ else
 end
 
 % Paths and configurations
-cfg.AUDIO_ID_PLAYBACK = 8; % playback device index; leave blank for default
+cfg.AUDIO_ID_PLAYBACK = 5; % playback device index; leave blank for default
 cfg.AUDIO_ID_RECORDING = []; % playback device index (for voice detection only); leave blank for default
 
 cfg.AUDIO_AMP = 1; %Audio amplitude in linear scale
@@ -173,15 +175,36 @@ disp(cfg)
 
 % initialize xippmex, open connection to neural interface processor (NIP)
 digout = 0;
-if exist('xippmex','file')==3 
-    try 
-        digout = xippmex('tcp');
-        xippmex('addoper',129);
+if exist('xippmex','file')==3
+    try
+        switch cfg.protocol
+            case 'tcp'
+                try
+                    digout = xippmex('tcp');
+                    xippmex('addoper',129);
+                    disp('Using TCP mode')
+                catch
+                    digout = xippmex();
+                    disp('Using UDP mode')
+                    warning('Inconsistent network protocol!')
+                end
+            case 'udp'
+                try
+                    digout = xippmex();
+                    disp('Using UDP mode')
+
+                catch
+                    digout = xippmex('tcp');
+                    xippmex('addoper',129);
+                    disp('Using TCP mode')
+                    warning('Inconsistent network protocol!')
+                end
+        end
+        onCleanupTasks{9} = onCleanup(@() xippmex('close'));
     catch err
         warning('xippmex failed %s: %s\n', err.identifier, err.message);
     end
 end
-
 if digout
     fprintf('Ripple system found.\n')
     
