@@ -21,10 +21,10 @@ cfg.SCREEN_SYNC_RECT = [0 0 20 20]; %rectangle used for screen sync
 cfg.SCREEN_SYNC_COLOR = [255 255 255];
 
 
-if any(strcmp({'MSI','DESKTOP-T5P1L4S'}, getenv('COMPUTERNAME'))) %% paths for Andrew Meier test computers
-    cfg.PATH_TASK = 'C:\docs\code\matlab\packages\Task_SpeechMotorSequenceLearning';
-    cfg.PATH_SOURCEDATA = 'C:\docs\code\matlab\DBS\sourcedata'; %source data root folder 
-    cfg.SCREEN_ID = 0; % preferred screen 
+if any(strcmp({'MSI','DESKTOP-T5P1L4S','677-GUE-WL-0010'}, getenv('COMPUTERNAME'))) %% paths for Andrew Meier test computers
+    cfg.PATH_TASK = 'C:\docs\code\Task_SpeechMotorSequenceLearning';
+    cfg.PATH_SOURCEDATA = 'C:\Users\amsmeier\Downloads'; %source data root folder 
+    cfg.SCREEN_ID = 1; % preferred screen 
 elseif strcmpi('BML-ALIENWARE',getenv('COMPUTERNAME'))
     cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
     cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %source data root folder 
@@ -44,7 +44,7 @@ cfg.AUDIO_ID_PLAYBACK = 5; % playback device index; leave blank for default
 cfg.AUDIO_ID_RECORDING = []; % playback device index (for voice detection only); leave blank for default
 
 cfg.AUDIO_AMP = 1; %Audio amplitude in linear scale
-cfg.SYNC_BEEPS = 0;
+cfg.SYNC_BEEPS = 1;
 cfg.KEYBOARD_ID = []; % prefered keyboard 
 cfg.SKIP_SYNC_TEST = 1; %should screen test be skipped (use only for debugging)
 cfg.CONSERVE_VRAM_MODE = []; %kPsychUseBeampositionQueryWorkaround

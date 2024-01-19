@@ -17,9 +17,9 @@ cfg.SCREEN_SYNC_RECT = [0 0 1 1]; %rectangle used for screen sync
 cfg.SCREEN_SYNC_COLOR = [255 255 255];
 
 % Paths and configurations
-if any(strcmp({'MSI','DESKTOP-T5P1L4S'}, getenv('COMPUTERNAME'))) %% paths for Andrew Meier test computers
-    cfg.PATH_TASK = 'C:\docs\code\matlab\Task_SpeechMotorSequenceLearning';
-    cfg.PATH_SOURCEDATA = 'C:\docs\code\matlab\DBS\sourcedata'; %source data root folder 
+if any(strcmp({'MSI','DESKTOP-T5P1L4S','677-GUE-WL-0010'}, getenv('COMPUTERNAME'))) %% paths for Andrew Meier test computers
+    cfg.PATH_TASK = 'C:\docs\code\Task_SpeechMotorSequenceLearning';
+    cfg.PATH_SOURCEDATA = 'C:\Users\amsmeier\Downloads'; %source data root folder 
     cfg.SCREEN_ID = 1; % preferred screen 
 elseif strcmp('BML-ALIENWARE', getenv('COMPUTERNAME'))
     cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
@@ -53,7 +53,7 @@ cfg.N_GROUPS = 1; % number of unique stimulus groups (subject groups)
 cfg.N_BLOCKS = 3; % 
 cfg.stopSignalDelay_ms = [600];
 cfg.voiceTriggeredStopSignal = 0; % if true, measure latency of STOP onset from voice onset; if false, measure STOP latency from GO signal
-cfg.GoBeepAmp = 0.5;
+cfg.GoBeepAmp = 0.3;
 cfg.StopBeepAmp = 0.2;
 
 prompt = {'Subject ID [string followed by 4 numbers]',...
