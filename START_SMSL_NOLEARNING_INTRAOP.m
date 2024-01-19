@@ -148,14 +148,68 @@ onCleanupTasks{10} = onCleanup(@() diary('off'));
 fprintf('\nConfiuration struture:\n');
 disp(cfg)
 
-% No triggers during training session
-cfg.DIGOUT = 0;
+%% Verifying connection to ripple system
+
+% initialize xippmex, open connection to neural interface processor (NIP)
+digout = 0;
+if exist('xippmex','file')==3
+    try
+        switch cfg.protocol
+            case 'tcp'
+                try
+                    digout = xippmex('tcp');
+                    xippmex('addoper',129);
+                    disp('Using TCP mode')
+                catch
+                    digout = xippmex();
+                    disp('Using UDP mode')
+                    warning('Inconsistent network protocol!')
+                end
+            case 'udp'
+                try
+                    digout = xippmex();
+                    disp('Using UDP mode')
+
+                catch
+                    digout = xippmex('tcp');
+                    xippmex('addoper',129);
+                    disp('Using TCP mode')
+                    warning('Inconsistent network protocol!')
+                end
+        end
+        onCleanupTasks{9} = onCleanup(@() xippmex('close'));
+    catch err
+        warning('xippmex failed %s: %s\n', err.identifier, err.message);
+    end
+end
+if digout
+    fprintf('Ripple system found.\n')
+    
+    %ceck status of recording
+    rippleRec = xippmex('trial');
+    
+    if isempty(strfind(rippleRec.filebase,cfg.SUBJECT))
+        warning('Ripple''s file basename (%s) does NOT contain the subject''s id (%s)',rippleRec.filebase,cfg.SUBJECT);
+    end
+    if ~strcmp(rippleRec.status, 'recording') 
+        warning('Ripple system connected but NOT recording. DRY RUN.');
+    else
+        fprintf('Ripple system recording to file %s%04d\n', rippleRec.filebase, rippleRec.incr_num);
+    end
+    
+    onCleanupTasks{9} = onCleanup(@() xippmex('close'));  
+else
+    fprintf(2,['\n***************************************',...
+             '\n** Ripple system NOT found! DRY RUN! **',...
+             '\n***************************************\n']);
+end
+cfg.DIGOUT = digout;
 
 %% Saving task function in log folder for documentation
 task_function = [pwd filesep cfg.TASK_FUNCTION];
 if ~isfile(task_function)
     clear onCleanupTasks
-    error('%s should be in current working directory',cfg.TASK_FUNCTION);
+    error('%s.m should be in current working directory',cfg.TASK_FUNCTION);
 end
 copyfile(task_function,[cfg.PATH_LOG filesep cfg.BASE_NAME 'script.m']);
 
