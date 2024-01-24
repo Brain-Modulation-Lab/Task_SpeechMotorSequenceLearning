@@ -3,7 +3,7 @@
 % check protocol
 cfg.protocol = 'udp';
 % subject and session
-cfg.SESSION_LABEL = 'nolearning_intraop'; %type of session ('test', 'training', 'preop', 'intraop', 'nolearning_preop', 'nolearning_intraop')
+cfg.SESSION_LABEL = 'intraop'; %type of session ('test', 'training', 'preop', 'intraop', 'nolearning_preop', 'nolearning_intraop')
 if ~isfield(cfg,'SUBJECT')
   cfg.SUBJECT = ''; %subject identifier
   cfg.GROUP_NUM = [];
@@ -13,7 +13,7 @@ end
 cfg.DATA_TYPE = 'task'; %BIDS data type 'beh' for behavioral and task data. 
 
 % rectangle for photodiodo synchronization
-cfg.SCREEN_SYNC_RECT = [0 0 1 1]; %rectangle used for screen sync
+cfg.SCREEN_SYNC_RECT = [0 0 20 20]; %rectangle used for screen sync
 cfg.SCREEN_SYNC_COLOR = [255 255 255];
 
 % Paths and configurations
@@ -34,11 +34,11 @@ else
     cfg.PATH_SOURCEDATA = '~/Data/DBS/sourcedata'; %source data root folder 
     cfg.SCREEN_ID = 0; % preferred screen 
 end
-cfg.AUDIO_ID_PLAYBACK = 5; % playback device index; leave blank for default
+cfg.AUDIO_ID_PLAYBACK = []; % playback device index; leave blank for default
 cfg.AUDIO_ID_RECORDING = []; % playback device index (for voice detection only); leave blank for default
 
 cfg.AUDIO_AMP = 1; %Audio amplitude in linear scale
-cfg.SYNC_BEEPS = 1; %initialization beeps for synchronization purposes
+cfg.SYNC_BEEPS = 0; %initialization beeps for synchronization purposes
 cfg.KEYBOARD_ID = []; % prefered keyboard 
 cfg.SKIP_SYNC_TEST = 1; %should screen test be skipped (use only for debugging)
 cfg.CONSERVE_VRAM_MODE = []; %kPsychUseBeampositionQueryWorkaround
@@ -49,7 +49,7 @@ cfg.TASK = 'SMSL'; % name of current task
 cfg.TASK_VERSION = 4; % version number for task
 cfg.TASK_FUNCTION = './scripts/task_smsl.m';
 cfg.N_GROUPS = 1; % number of unique stimulus groups (subject groups)
-    cfg.GROUP_NUM = 1; % subjects are not divided into separate groups in this no-learning task version; all are in 'group 1'
+cfg.GROUP_NUM = 1; % subjects are not divided into separate groups in this no-learning task version; all are in 'group 1'
 cfg.N_BLOCKS = 3; % 
 cfg.stopSignalDelay_ms = [600];
 cfg.voiceTriggeredStopSignal = 0; % if true, measure latency of STOP onset from voice onset; if false, measure STOP latency from GO signal
