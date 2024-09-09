@@ -23,7 +23,7 @@ cfg.SCREEN_SYNC_COLOR = [255 255 255];
 
 if any(strcmp({'MSI','DESKTOP-T5P1L4S','677-GUE-WL-0010'}, getenv('COMPUTERNAME'))) %% paths for Andrew Meier test computers
     cfg.PATH_TASK = 'C:\docs\code\Task_SpeechMotorSequenceLearning';
-    cfg.PATH_SOURCEDATA = 'C:\Users\amsmeier\Downloads'; %source data root folder 
+    cfg.PATH_SOURCEDATA = 'C:\Users\amsme\Downloads'; %source data root folder 
     cfg.SCREEN_ID = 1; % preferred screen 
 elseif strcmpi('BML-ALIENWARE',getenv('COMPUTERNAME'))
     cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
