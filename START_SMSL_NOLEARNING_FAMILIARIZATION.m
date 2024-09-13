@@ -12,7 +12,7 @@ end
 cfg.DATA_TYPE = 'task'; %BIDS data type 'beh' for behavioral and task data. 
 
 % rectangle for photodiodo synchronization
-cfg.SCREEN_SYNC_RECT = [0 0 1 1]; %rectangle used for screen sync
+cfg.SCREEN_SYNC_RECT = [0 0 40 40]; %rectangle used for screen sync
 cfg.SCREEN_SYNC_COLOR = [255 255 255];
 
 % Paths and PTB configuration on task computer

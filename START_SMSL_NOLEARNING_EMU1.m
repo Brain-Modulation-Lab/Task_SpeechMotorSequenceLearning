@@ -2,7 +2,7 @@
 % Creating configuration structure
 
 % subject and session
-cfg.SESSION_LABEL = 'preop'; %type of session ('test', 'training', 'preop', 'intraop', 'nolearning_preop', 'nolearning_intraop')
+cfg.SESSION_LABEL = 'EMU'; %type of session ('test', 'training', 'preop', 'intraop', 'nolearning_preop', 'nolearning_intraop')
 if ~isfield(cfg,'SUBJECT')
   cfg.SUBJECT = ''; %subject identifier
   cfg.GROUP_NUM = [];
@@ -12,27 +12,16 @@ end
 cfg.DATA_TYPE = 'task'; %BIDS data type 'beh' for behavioral and task data. 
 
 % rectangle for photodiodo synchronization
-cfg.SCREEN_SYNC_RECT = [0 0 1 1]; %rectangle used for screen sync
+cfg.SCREEN_SYNC_RECT = [0 0 40 40]; %rectangle used for screen sync
 cfg.SCREEN_SYNC_COLOR = [255 255 255];
 
-% Paths and configurations
-if any(strcmp({'MSI','DESKTOP-T5P1L4S'}, getenv('COMPUTERNAME'))) %% paths for Andrew Meier test computers
-    cfg.PATH_TASK = 'C:\docs\code\matlab\Task_SpeechMotorSequenceLearning';
-    cfg.PATH_SOURCEDATA = 'C:\docs\code\matlab\DBS\sourcedata'; %source data root folder 
-    cfg.SCREEN_ID = 1; % preferred screen 
-elseif strcmp('BML-ALIENWARE', getenv('COMPUTERNAME'))
-    cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
-    cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %sourcedata root folder 
-    cfg.SCREEN_ID = 0; % preferred screen 
-elseif strcmp('BML-ALIENWARE2', getenv('COMPUTERNAME'))
-    cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
-    cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %sourcedata root folder 
-    cfg.SCREEN_ID = 0; % preferred screen 
-else
-    cfg.PATH_TASK = '~/git/Task_SpeechMotorSequenceLearning'; 
-    cfg.PATH_SOURCEDATA = '~/Data/DBS/sourcedata'; %source data root folder 
-    cfg.SCREEN_ID = 0; % preferred screen 
-end
+% Paths and PTB configuration on task computer
+[~, userdir] = system('echo %USERPROFILE%');
+userdir = strtrim(userdir);
+cfg.PATH_TASK = [userdir '\Desktop\BML\Task_SpeechMotorSequenceLearning'];
+cfg.PATH_SOURCEDATA = [userdir '\Desktop\BML\Data_SpeechMotorSequenceLearning']; %rawdata root folder
+cfg.SCREEN_ID = 0; % preferred scree
+
 cfg.AUDIO_ID_PLAYBACK = []; % playback device index; leave blank for default
 cfg.AUDIO_ID_RECORDING = []; % playback device index (for voice detection only); leave blank for default
 
@@ -45,7 +34,7 @@ cfg.CONSERVE_VRAM_MODE = []; %kPsychUseBeampositionQueryWorkaround
 
 %% Task parameters
 cfg.TASK = 'SMSL'; % name of current task
-cfg.TASK_VERSION = 4; % version number for task
+cfg.TASK_VERSION = 5; % version number for task
 cfg.TASK_FUNCTION = './scripts/task_smsl.m';
 cfg.N_GROUPS = 1; % number of unique stimulus groups (subject groups)
     cfg.GROUP_NUM = 1; % subjects are not divided into separate groups in this no-learning task version; all are in 'group 1'
@@ -74,11 +63,11 @@ cfg.N_BLOCKS = str2double(answer{5});
 cfg.stopSignalDelay_ms = str2num(answer{6});
 switch cfg.EXP_PHASE_NUM
     case 3
-        cfg.EXP_PHASE = 'nolearning_preop'; 
+        cfg.EXP_PHASE = 'nolearning_EMU1'; 
     case 3.5
-        cfg.EXP_PHASE = 'nolearning_intraop';
+        cfg.EXP_PHASE = 'nolearning_EMU2';
     otherwise
-        error('Experiment Phase must be one of: 3 = No_Learning_Preop, 3.5 = No_Learning_Intraop') 
+        error('Experiment Phase must be one of: 3 = No_Learning_EMU1, 3.5 = No_Learning_EMU2') 
 end
 
 % Check if all parameters input into GUI
@@ -92,18 +81,6 @@ onCleanupTasks = cell(10,1);
 %% Warnings
 warning('on','all'); %enabling warnings
 beep off
-
-%% Initialize external audio recording from USB interface 
-if isempty(gcp())
-    parpool('local', 1);
-    wait(); 
-end
-
-% Get the worker to construct a data queue on which it can receive messages from the client
-workerQueueConstant = parallel.pool.Constant(@parallel.pool.PollableDataQueue);
-
-% Get the worker to send the queue object back to the client
-workerQueueClient = fetchOutputs(parfeval(@(x) x.Value, 1, workerQueueConstant));
 
 
 %% Constructing and checking paths and getting next trial run id
@@ -168,22 +145,30 @@ onCleanupTasks{10} = onCleanup(@() diary('off'));
 fprintf('\nConfiuration struture:\n');
 disp(cfg)
 
-% No triggers during training session
-cfg.DIGOUT = 0;
-
 %% Start audio recording
-cfg.AUDIO_FILENAME = [cfg.PATH_AUDIO filesep cfg.BASE_NAME(1:end-1) '.wav'];
-
-% Get the worker to start waiting for messages
-filename = cfg.AUDIO_FILENAME;
-% TODO check that @record_audio is on the path
-if ~(exist('record_audio')==2)
-    error('record_audio() function not found. Add it to the MATLAB path.'); 
-end
-future = parfeval(@record_audio, 1, filename, workerQueueConstant);
-future.Diary
-
-onCleanupTasks{6} = onCleanup(@() send(workerQueueClient, 'stop'));
+% if isempty(gcp())
+%     parpool('local', 1);
+%     wait(); 
+% end
+% 
+% % Get the worker to construct a data queue on which it can receive messages from the client
+% workerQueueConstant = parallel.pool.Constant(@parallel.pool.PollableDataQueue);
+% 
+% % Get the worker to send the queue object back to the client
+% workerQueueClient = fetchOutputs(parfeval(@(x) x.Value, 1, workerQueueConstant));
+% 
+% cfg.AUDIO_FILENAME = [cfg.PATH_AUDIO filesep cfg.BASE_NAME(1:end-1) '.wav'];
+% 
+% % Get the worker to start waiting for messages
+% filename = cfg.AUDIO_FILENAME;
+% % TODO check that @record_audio is on the path
+% if ~(exist('record_audio')==2)
+%     error('record_audio() function not found. Add it to the MATLAB path.'); 
+% end
+% future = parfeval(@record_audio, 1, filename, workerQueueConstant);
+% future.Diary
+% 
+% onCleanupTasks{6} = onCleanup(@() send(workerQueueClient, 'stop'));
 
 %% Saving task function in log folder for documentation
 task_function = [pwd filesep cfg.TASK_FUNCTION];
@@ -193,14 +178,29 @@ if ~isfile(task_function)
 end
 copyfile(task_function,[cfg.PATH_LOG filesep cfg.BASE_NAME 'script.m']);
 
+%% changing to scripts folder
+cd('./scripts');
+
+%% Initializing trigger port 
+cfg.DIGOUT = [];
+if exist('io64','file')==3 || exist('io64','file')==2
+  clear('KbWait','PsychHID','KbCheck','Screen');
+  cfg.DIGOUT = Setup_DAQ_Stim(cfg.DIGOUT);
+  
+  % Send initial trigger.
+  StimTrigCode = 64;
+  io64(cfg.DIGOUT.portObj,cfg.DIGOUT.portAddress,StimTrigCode);
+  WaitSecs(0.5);
+  io64(cfg.DIGOUT.portObj,cfg.DIGOUT.portAddress,0);
+end
+
 %% Launching the task
 commandwindow
 try
-  cd('./scripts');
   task_smsl(cfg);
 catch e
-	fprintf('The identifier was:\n%s',e.identifier);
-	fprintf('There was an error! The message was:\n%s',e.message);
+  fprintf('The identifier was:\n%s',e.identifier);
+  fprintf('There was an error! The message was:\n%s',e.message);
 end
 
 %% Cleaning up

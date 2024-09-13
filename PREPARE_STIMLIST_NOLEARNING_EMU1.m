@@ -12,7 +12,8 @@
 clear
 
 % subject and session
-cfg.SESSION_LABEL = 'nolearning_preop'; %type of session ('test', 'training', 'preop', 'intraop', 'nolearning_preop', 'nolearning_intraop')
+%cfg.SESSION_LABEL = 'nolearning_EMU1'; %type of session ('test', 'training', 'preop', 'intraop', 'nolearning_preop', 'nolearning_intraop')
+cfg.SESSION_LABEL = 'EMU';
 if ~isfield(cfg,'SUBJECT')
   cfg.SUBJECT = ''; %subject identifier
   cfg.GROUP_NUM = [];
@@ -21,21 +22,11 @@ elseif ~isfield(cfg,'GROUP_NUM')
 end
 cfg.DATA_TYPE = 'task'; %BIDS data type 'beh' for behavioral and task data. 
 
-
-% Paths and configurations
-if any(strcmp({'MSI','DESKTOP-T5P1L4S'}, getenv('COMPUTERNAME'))) %% paths for Andrew Meier test computers
-    cfg.PATH_TASK = 'C:\docs\code\matlab\Task_SpeechMotorSequenceLearning';
-    cfg.PATH_SOURCEDATA = 'C:\docs\code\matlab\DBS\sourcedata'; %source data root folder 
-elseif strcmp('BML-ALIENWARE', getenv('COMPUTERNAME'))
-    cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
-    cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %sourcedata root folder 
-elseif strcmp('BML-ALIENWARE2', getenv('COMPUTERNAME'))
-    cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
-    cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %sourcedata root folder 
-else
-    cfg.PATH_TASK = '~/git/Task_SpeechMotorSequenceLearning'; 
-    cfg.PATH_SOURCEDATA = '~/Data/DBS/sourcedata'; %source data root folder 
-end
+% Paths and PTB configuration on task computer
+[~, userdir] = system('echo %USERPROFILE%');
+userdir = strtrim(userdir);
+cfg.PATH_TASK = [userdir '\Desktop\BML\Task_SpeechMotorSequenceLearning'];
+cfg.PATH_SOURCEDATA = [userdir '\Desktop\BML\Data_SpeechMotorSequenceLearning']; %rawdata root folder
 
 
 %% Task parameters
@@ -47,7 +38,7 @@ cfg.stopSignalDelay_ms = [600];
 
 prompt = {'Subject ID [string followed by 4 numbers]',...
           'Session',...
-          sprintf('Experiment Phase?\n(3 = No_Learning_Preop, 3.5 = No_Learning_Intraop)'),...
+          sprintf('Experiment Phase?\n(3 = No_Learning_EMU1, 3.5 = No_Learning_EMU2)'),...
           'Number of blocks',...
           'Stop Signal Delay (ms). [May be vector for Training]'};
 dlgtitle = 'Experimenter Input';
@@ -62,11 +53,11 @@ cfg.N_BLOCKS = str2double(answer{4});
 cfg.stopSignalDelay_ms = str2num(answer{5});
 switch cfg.EXP_PHASE_NUM %%%% EXP_PHASE = 3 and EXP_PHASE = 3.5 are functionally identical; it is just used to keep track of which phase we are running for later analysis
     case 3
-        cfg.EXP_PHASE = 'nolearning_preop'; 
+        cfg.EXP_PHASE = 'nolearning_EMU1'; 
     case 3.5
-        cfg.EXP_PHASE = 'nolearning_intraop';
+        cfg.EXP_PHASE = 'nolearning_EMU2';
     otherwise
-        error('Experiment Phase must be one of: 3 = No_Learning_Preop, 3.5 = No_Learning_Intraop') 
+        error('Experiment Phase must be one of: 3 = No_Learning_EMU1, 3.5 = No_Learning_EMU2') 
 end
 
 % Check if all parameters input into GUI
