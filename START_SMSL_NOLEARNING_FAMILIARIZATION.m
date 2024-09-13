@@ -2,7 +2,7 @@
 % Creating configuration structure
 
 % subject and session
-cfg.SESSION_LABEL = 'preop'; %type of session ('test', 'training', 'preop', 'intraop', 'nolearning_preop', 'nolearning_intraop', 'nolearning_familiarization')
+cfg.SESSION_LABEL = 'EMU'; %type of session ('test', 'training', 'preop', 'intraop', 'nolearning_preop', 'nolearning_intraop', 'nolearning_familiarization')
 if ~isfield(cfg,'SUBJECT')
   cfg.SUBJECT = ''; %subject identifier
   cfg.GROUP_NUM = [];
@@ -15,24 +15,13 @@ cfg.DATA_TYPE = 'task'; %BIDS data type 'beh' for behavioral and task data.
 cfg.SCREEN_SYNC_RECT = [0 0 1 1]; %rectangle used for screen sync
 cfg.SCREEN_SYNC_COLOR = [255 255 255];
 
-% Paths and configurations
-if any(strcmp({'MSI','DESKTOP-T5P1L4S','677-GUE-WL-0010'}, getenv('COMPUTERNAME'))) %% paths for Andrew Meier test computers
-    cfg.PATH_TASK = 'C:\docs\code\Task_SpeechMotorSequenceLearning';
-    cfg.PATH_SOURCEDATA = 'C:\Users\amsme\Downloads'; %source data root folder 
-    cfg.SCREEN_ID = 0; % preferred screen 
-elseif strcmp('BML-ALIENWARE', getenv('COMPUTERNAME'))
-    cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
-    cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %sourcedata root folder 
-    cfg.SCREEN_ID = 0; % preferred screen 
-elseif strcmp('BML-ALIENWARE2', getenv('COMPUTERNAME'))
-    cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
-    cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %sourcedata root folder 
-    cfg.SCREEN_ID = 0; % preferred screen 
-else
-    cfg.PATH_TASK = '~/git/Task_SpeechMotorSequenceLearning'; 
-    cfg.PATH_SOURCEDATA = '~/Data/DBS/sourcedata'; %source data root folder 
-    cfg.SCREEN_ID = 0; % preferred screen 
-end
+% Paths and PTB configuration on task computer
+[~, userdir] = system('echo %USERPROFILE%');
+userdir = strtrim(userdir);
+cfg.PATH_TASK = [userdir '\Desktop\BML\Task_SpeechMotorSequenceLearning'];
+cfg.PATH_SOURCEDATA = [userdir '\Desktop\BML\Data_SpeechMotorSequenceLearning']; %rawdata root folder
+cfg.SCREEN_ID = 0; % preferred scree
+
 cfg.AUDIO_ID_PLAYBACK = []; % playback device index; leave blank for default
 cfg.AUDIO_ID_RECORDING = []; % playback device index (for voice detection only); leave blank for default
 
@@ -42,10 +31,9 @@ cfg.KEYBOARD_ID = []; % prefered keyboard
 cfg.SKIP_SYNC_TEST = 1; %should screen test be skipped (use only for debugging)
 cfg.CONSERVE_VRAM_MODE = []; %kPsychUseBeampositionQueryWorkaround
 
-
 %% Task parameters
 cfg.TASK = 'SMSL'; % name of current task
-cfg.TASK_VERSION = 4; % version number for task
+cfg.TASK_VERSION = 5; % version number for task
 cfg.TASK_FUNCTION = './scripts/task_smsl.m';
 cfg.N_GROUPS = 1; % number of unique stimulus groups (subject groups)
     cfg.GROUP_NUM = 1; % subjects are not divided into separate groups in this no-learning task version; all are in 'group 1'
@@ -149,9 +137,6 @@ onCleanupTasks{10} = onCleanup(@() diary('off'));
 fprintf('\nConfiguration struture:\n');
 disp(cfg)
 
-% No triggers during training session
-cfg.DIGOUT = 0;
-
 %% Saving task function in log folder for documentation
 task_function = [pwd filesep cfg.TASK_FUNCTION];
 if ~isfile(task_function)
@@ -160,10 +145,25 @@ if ~isfile(task_function)
 end
 copyfile(task_function,[cfg.PATH_LOG filesep cfg.BASE_NAME 'script.m']);
 
+%% changing to scripts folder
+cd('./scripts');
+
+%% Initializing trigger port 
+cfg.DIGOUT = [];
+if exist('io64','file')==3 || exist('io64','file')==2
+  clear('KbWait','PsychHID','KbCheck','Screen');
+  cfg.DIGOUT = Setup_DAQ_Stim(cfg.DIGOUT);
+  
+  % Send initial trigger.
+  StimTrigCode = 64;
+  io64(cfg.DIGOUT.portObj,cfg.DIGOUT.portAddress,StimTrigCode);
+  WaitSecs(0.5);
+  io64(cfg.DIGOUT.portObj,cfg.DIGOUT.portAddress,0);
+end
+
 %% Launching the task
 commandwindow
 try
-  cd('./scripts');
   task_smsl(cfg);
 catch e
 	fprintf('The identifier was:\n%s',e.identifier);

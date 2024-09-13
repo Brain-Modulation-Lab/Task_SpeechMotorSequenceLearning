@@ -2,6 +2,7 @@ function task_smsl(cfg)
 
 %%% updated by Andrew Meier for SEQ-DBS project 2021/3/29
 %%% Adapted for OR by Alan Bush 2021/04/01
+%%% Adapted for the EMU by Alan Bush on 2024/09/13
 
 % Speech Motor Sequence Learning taks for intraoperative experiments
 % 
@@ -194,7 +195,7 @@ end
 
 baseline_memory = NaN(baseline_memory_ntrials, 1); % initialize
 
-% % % open playback device
+% open playback device
 playback_handle = PsychPortAudio('Open', cfg.AUDIO_ID_PLAYBACK, 1, pa_reqlatencyclass, pa_freq, n_playback_channels);
 onCleanupTasks{19} = onCleanup(@() PsychPortAudio('Close')); % close playback and recording handles
 
