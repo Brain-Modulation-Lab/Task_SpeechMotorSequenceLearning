@@ -40,7 +40,7 @@ else
 end
 
 % Paths and configurations
-cfg.AUDIO_ID_PLAYBACK = 5; % playback device index; leave blank for default
+cfg.AUDIO_ID_PLAYBACK = []; % playback device index; leave blank for default
 cfg.AUDIO_ID_RECORDING = []; % playback device index (for voice detection only); leave blank for default
 
 cfg.AUDIO_AMP = 1; %Audio amplitude in linear scale
@@ -52,7 +52,7 @@ cfg.CONSERVE_VRAM_MODE = []; %kPsychUseBeampositionQueryWorkaround
 %% Task parameters
 cfg.TASK = 'SMSL'; % name of current task
 cfg.TASK_VERSION = 4; % version number for task
-cfg.TASK_FUNCTION = './scripts/task_smsl.m';
+cfg.TASK_FUNCTION = './task_smsl.m';
 cfg.N_GROUPS = 7; % number of unique stimulus groups (subject groups)
 cfg.N_BLOCKS = 3;
 cfg.stopSignalDelay_ms = 600;
@@ -113,19 +113,35 @@ end
 %% Initializing cleanup hooks
 onCleanupTasks = cell(10,1); 
 
+%% Initialize external audio recording from USB interface 
+if isempty(gcp())
+    parpool('local', 1);
+    wait(); 
+end
+
+% Get the worker to construct a data queue on which it can receive messages from the client
+workerQueueConstant = parallel.pool.Constant(@parallel.pool.PollableDataQueue);
+
+% Get the worker to send the queue object back to the client
+workerQueueClient = fetchOutputs(parfeval(@(x) x.Value, 1, workerQueueConstant));
+
 %% Warnings
 warning('on','all'); %enabling warnings
 beep off
 
 %% Constructing and checking paths and getting next trial run id
 
-%checking data path
+% checking data path
 pathSub = [cfg.PATH_SOURCEDATA filesep 'sub-' cfg.SUBJECT];
 pathSubSes = [pathSub filesep 'ses-' cfg.SESSION_LABEL];
 pathSubSesDataType = [pathSubSes filesep cfg.DATA_TYPE];
+pathSubSesAudio = [pathSubSes filesep 'audio'];
+cfg.PATH_AUDIO = pathSubSesAudio;
+
 if ~isfolder(cfg.PATH_SOURCEDATA)
     error('rawdata folder %s does not exist',cfg.PATH_SOURCEDATA)
 end
+
 if ~isfolder(pathSub)
     fprintf('Creating subject folder %s \n',pathSub)
     mkdir(pathSub)
@@ -138,6 +154,11 @@ if ~isfolder(pathSubSesDataType)
     fprintf('Creating session folder %s \n',pathSubSesDataType)
     mkdir(pathSubSesDataType)
 end
+if ~isfolder(pathSubSesAudio)
+    fprintf('Creating session folder %s \n',pathSubSesAudio)
+    mkdir(pathSubSesAudio)
+end
+
 
 % creating files basename 
 fileBaseName = ['sub-' cfg.SUBJECT '_ses-' cfg.SESSION_LABEL '_task-' cfg.TASK '_run-'];
@@ -228,6 +249,11 @@ else
 end
 cfg.DIGOUT = digout;
 
+
+
+%% Change folder 
+cd('./scripts');
+
 %% Saving task function in log folder for documentation
 task_function = [pwd filesep cfg.TASK_FUNCTION];
 if ~isfile(task_function)
@@ -236,10 +262,23 @@ if ~isfile(task_function)
 end
 copyfile(task_function,[cfg.PATH_LOG filesep cfg.BASE_NAME 'script.m']);
 
+%% Start audio recording
+cfg.AUDIO_FILENAME = [cfg.PATH_AUDIO filesep cfg.BASE_NAME(1:end-1) '.wav'];
+
+% Get the worker to start waiting for messages
+filename = cfg.AUDIO_FILENAME;
+% TODO check that @record_audio is on the path
+if ~(exist('record_audio')==2)
+    error('record_audio() function not found. Add it to the MATLAB path.'); 
+end
+future = parfeval(@record_audio, 1, filename, workerQueueConstant);
+future.Diary
+
+onCleanupTasks{6} = onCleanup(@() send(workerQueueClient, 'stop'));
+
 %% Launching the task
 commandwindow
 try
-  cd('./scripts');
   task_smsl(cfg);
 catch e
 	fprintf('The identifier was:\n%s',e.identifier);

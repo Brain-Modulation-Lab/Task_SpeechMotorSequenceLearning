@@ -47,8 +47,9 @@ cfg.CONSERVE_VRAM_MODE = []; %kPsychUseBeampositionQueryWorkaround
 %% Task parameters
 cfg.TASK = 'SMSL'; % name of current task
 cfg.TASK_VERSION = 4; % version number for task
-cfg.TASK_FUNCTION = './scripts/task_smsl.m';
-cfg.N_GROUPS = 1; % number of unique stimulus groups (subject groups)
+cfg.TASK_FUNCTION = './task_smsl.m';
+cfg.N_GROUPS = 1; % number of
+% unique stimulus groups (subject groups)
 cfg.GROUP_NUM = 1; % subjects are not divided into separate groups in this no-learning task version; all are in 'group 1'
 cfg.N_BLOCKS = 3; % 
 cfg.stopSignalDelay_ms = [600];
@@ -224,6 +225,9 @@ else
              '\n***************************************\n']);
 end
 cfg.DIGOUT = digout;
+  
+%% Change folder
+cd('./scripts');
 
 %% Start audio recording
 cfg.AUDIO_FILENAME = [cfg.PATH_AUDIO filesep cfg.BASE_NAME(1:end-1) '.wav'];
@@ -250,7 +254,6 @@ copyfile(task_function,[cfg.PATH_LOG filesep cfg.BASE_NAME 'script.m']);
 %% Launching the task
 commandwindow
 try
-  cd('./scripts');
   task_smsl(cfg);
 catch e
 	fprintf('The identifier was:\n%s',e.identifier);
