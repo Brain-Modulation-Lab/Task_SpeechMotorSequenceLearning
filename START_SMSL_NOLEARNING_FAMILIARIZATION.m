@@ -89,6 +89,9 @@ beep off
 pathSub = [cfg.PATH_SOURCEDATA filesep 'sub-' cfg.SUBJECT];
 pathSubSes = [pathSub filesep 'ses-' cfg.SESSION_LABEL];
 pathSubSesDataType = [pathSubSes filesep cfg.DATA_TYPE];
+pathSubSesAudio = [pathSubSes filesep 'audio'];
+cfg.PATH_AUDIO = pathSubSesAudio;
+
 if ~isfolder(cfg.PATH_SOURCEDATA)
     error('rawdata folder %s does not exist',cfg.PATH_SOURCEDATA)
 end
@@ -103,6 +106,10 @@ end
 if ~isfolder(pathSubSesDataType)
     fprintf('Creating session folder %s \n',pathSubSesDataType)
     mkdir(pathSubSesDataType)
+end
+if ~isfolder(pathSubSesAudio)
+    fprintf('Creating session folder %s \n',pathSubSesAudio)
+    mkdir(pathSubSesAudio)
 end
 
 % creating files basename 
@@ -138,29 +145,7 @@ fprintf('\nConfiguration struture:\n');
 disp(cfg)
 
 %% Start audio recording
-if isempty(gcp())
-    parpool('local', 1);
-    wait(); 
-end
-
-% Get the worker to construct a data queue on which it can receive messages from the client
-workerQueueConstant = parallel.pool.Constant(@parallel.pool.PollableDataQueue);
-
-% Get the worker to send the queue object back to the client
-workerQueueClient = fetchOutputs(parfeval(@(x) x.Value, 1, workerQueueConstant));
-
-cfg.AUDIO_FILENAME = [cfg.PATH_AUDIO filesep cfg.BASE_NAME(1:end-1) '.wav'];
-
-% Get the worker to start waiting for messages
-filename = cfg.AUDIO_FILENAME;
-% TODO check that @record_audio is on the path
-if ~(exist('record_audio')==2)
-    error('record_audio() function not found. Add it to the MATLAB path.'); 
-end
-future = parfeval(@record_audio, 1, filename, workerQueueConstant);
-future.Diary
-
-onCleanupTasks{6} = onCleanup(@() send(workerQueueClient, 'stop'));
+onCleanupTasks{6} = Task_BML_InitilizeAudioRecordings(cfg);
 
 %% Saving task function in log folder for documentation
 task_function = [pwd filesep cfg.TASK_FUNCTION];
