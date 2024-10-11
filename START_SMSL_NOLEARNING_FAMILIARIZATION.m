@@ -2,7 +2,7 @@
 % Creating configuration structure
 
 % subject and session
-cfg.SESSION_LABEL = 'EMU'; %type of session ('test', 'training', 'preop', 'intraop', 'nolearning_preop', 'nolearning_intraop', 'nolearning_familiarization')
+cfg.SESSION_LABEL = 'SMSL'; 
 if ~isfield(cfg,'SUBJECT')
   cfg.SUBJECT = ''; %subject identifier
   cfg.GROUP_NUM = [];
@@ -19,7 +19,7 @@ cfg.SCREEN_SYNC_COLOR = [255 255 255];
 [~, userdir] = system('echo %USERPROFILE%');
 userdir = strtrim(userdir);
 cfg.PATH_TASK = [userdir '\Desktop\BML\Task_SpeechMotorSequenceLearning'];
-cfg.PATH_SOURCEDATA = [userdir '\Desktop\BML\Data_SpeechMotorSequenceLearning']; %rawdata root folder
+cfg.PATH_SOURCEDATA = [userdir '\Desktop\sourcedata']; %rawdata root folder
 cfg.SCREEN_ID = 0; % preferred scree
 
 cfg.AUDIO_ID_PLAYBACK = []; % playback device index; leave blank for default
@@ -84,55 +84,7 @@ warning('on','all'); %enabling warnings
 beep off
 
 %% Constructing and checking paths and getting next trial run id
-
-%checking data path
-pathSub = [cfg.PATH_SOURCEDATA filesep 'sub-' cfg.SUBJECT];
-pathSubSes = [pathSub filesep 'ses-' cfg.SESSION_LABEL];
-pathSubSesDataType = [pathSubSes filesep cfg.DATA_TYPE];
-pathSubSesAudio = [pathSubSes filesep 'audio'];
-cfg.PATH_AUDIO = pathSubSesAudio;
-
-if ~isfolder(cfg.PATH_SOURCEDATA)
-    error('rawdata folder %s does not exist',cfg.PATH_SOURCEDATA)
-end
-if ~isfolder(pathSub)
-    fprintf('Creating subject folder %s \n',pathSub)
-    mkdir(pathSub)
-end
-if ~isfolder(pathSubSes)
-    fprintf('Creating session folder %s \n',pathSubSes)
-    mkdir(pathSubSes)
-end
-if ~isfolder(pathSubSesDataType)
-    fprintf('Creating session folder %s \n',pathSubSesDataType)
-    mkdir(pathSubSesDataType)
-end
-if ~isfolder(pathSubSesAudio)
-    fprintf('Creating session folder %s \n',pathSubSesAudio)
-    mkdir(pathSubSesAudio)
-end
-
-% creating files basename 
-fileBaseName = ['sub-' cfg.SUBJECT '_ses-' cfg.SESSION_LABEL '_task-' cfg.TASK '_run-'];
-
-%checking for previous runs based PBT events file
-if ismissing(cfg.RUN_ID)
-  allEventFiles = dir([pathSubSesDataType filesep fileBaseName '*_events.tsv']);
-  if ~isempty(allEventFiles)
-      prevRunIds = regexp({allEventFiles.name}, '_run-(\d+)_' ,'tokens','ignorecase','forceCellOutput','once');
-      prevRunIds = cellfun(@(x) str2double(x{1,1}),prevRunIds,'UniformOutput',true);
-      runId = max(prevRunIds) + 1;
-  else
-      runId = 1;
-  end
-  cfg.RUN_ID = runId;
-end
-cfg.PATH_LOG = pathSubSesDataType;
-cfg.BASE_NAME = [fileBaseName num2str(cfg.RUN_ID,'%02.f') '_'];
-cfg.LOG_FILENAME = [cfg.PATH_LOG filesep cfg.BASE_NAME 'log.txt'];
-cfg.EVENT_FILENAME = [cfg.PATH_LOG filesep cfg.BASE_NAME 'events.tsv'];
-cfg.TRIAL_FILENAME = [cfg.PATH_LOG filesep cfg.BASE_NAME 'trials-' cfg.EXP_PHASE '.tsv']; %randomized trials info
-cfg.SPEC_FILENAME = [cfg.PATH_LOG filesep cfg.BASE_NAME 'spec-' cfg.EXP_PHASE '.tsv']; %randomized trials info
+cfg = Task_BML_CreatePaths(cfg);
 
 % look for a premade stim order file under the following filename; if not present, run the stim randomizer and make a new stim order
 cfg.SPEC_PREMADE_FILENAME = [cfg.PATH_LOG filesep 'sub-' cfg.SUBJECT '_ses-' cfg.SESSION_LABEL '_task-' cfg.TASK '_spec-prepared-' cfg.EXP_PHASE '.tsv'];
