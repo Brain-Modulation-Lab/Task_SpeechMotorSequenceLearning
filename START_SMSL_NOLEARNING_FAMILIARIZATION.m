@@ -76,52 +76,20 @@ if size(cfg.SUBJECT,2)==0
     error('Must provide required input parameters');
 end
 
-%% Initializing cleanup hooks
-onCleanupTasks = cell(10,1); 
-
-%% Warnings
-warning('on','all'); %enabling warnings
-beep off
-
-%% Constructing and checking paths and getting next trial run id
-cfg = Task_BML_CreatePaths(cfg);
+%% Initializing
+cfg.onCleanupTasks = cell(10,1); 
+cfg = Task_BML_InitializePaths(cfg);
+cfg = Task_BML_InitializeDiary(cfg);
+cfg = Task_BML_InitilizeAudioRecordings(cfg);
+cfg = Task_BML_InitializeEvents(cfg);
+cfg = Task_BML_logMetadata(cfg);
+cfg = Task_BML_DocumentTaskFunction(cfg);
 
 % look for a premade stim order file under the following filename; if not present, run the stim randomizer and make a new stim order
 cfg.SPEC_PREMADE_FILENAME = [cfg.PATH_LOG filesep 'sub-' cfg.SUBJECT '_ses-' cfg.SESSION_LABEL '_task-' cfg.TASK '_spec-prepared-' cfg.EXP_PHASE '.tsv'];
 
-%% Starting diary
-%open diary for this run (saves PTB initialization output)
-diary(cfg.LOG_FILENAME);
-onCleanupTasks{10} = onCleanup(@() diary('off'));
-fprintf('\nConfiguration struture:\n');
-disp(cfg)
-
-%% Start audio recording
-onCleanupTasks{6} = Task_BML_InitilizeAudioRecordings(cfg);
-
-%% Saving task function in log folder for documentation
-task_function = [pwd filesep cfg.TASK_FUNCTION];
-if ~isfile(task_function)
-    clear onCleanupTasks
-    error('%s should be in current working directory',cfg.TASK_FUNCTION);
-end
-copyfile(task_function,[cfg.PATH_LOG filesep cfg.BASE_NAME 'script.m']);
-
 %% changing to scripts folder
 cd('./scripts');
-
-%% Initializing trigger port 
-cfg.DIGOUT = [];
-if exist('io64','file')==3 || exist('io64','file')==2
-  clear('KbWait','PsychHID','KbCheck','Screen');
-  cfg.DIGOUT = Setup_DAQ_Stim(cfg.DIGOUT);
-  
-  % Send initial trigger.
-  StimTrigCode = 64;
-  io64(cfg.DIGOUT.portObj,cfg.DIGOUT.portAddress,StimTrigCode);
-  WaitSecs(0.5);
-  io64(cfg.DIGOUT.portObj,cfg.DIGOUT.portAddress,0);
-end
 
 %% Launching the task
 commandwindow
@@ -133,4 +101,8 @@ catch e
 end
 
 %% Cleaning up
-clear onCleanupTasks
+fprintf('\nCleaning up...\n');
+cfg.onCleanupTasks = [];
+WaitSecs(2);
+fprintf('Done!\n');
+
