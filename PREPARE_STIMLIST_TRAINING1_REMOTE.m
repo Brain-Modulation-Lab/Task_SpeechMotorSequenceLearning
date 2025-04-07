@@ -26,7 +26,7 @@ cfg.DATA_TYPE = 'task'; %BIDS data type 'beh' for behavioral and task data.
 if any(strcmp({'MSI','DESKTOP-T5P1L4S'}, getenv('COMPUTERNAME'))) %% paths for Andrew Meier test computers
     cfg.PATH_TASK = 'C:\docs\code\matlab\packages\Task_SpeechMotorSequenceLearning';
     cfg.PATH_SOURCEDATA = 'C:\docs\code\matlab\DBS\sourcedata'; %source data root folder 
-elseif strcmp('BML-ALIENWARE', getenv('COMPUTERNAME'))
+elseif strcmp('BML-ALIENWARE2', getenv('COMPUTERNAME'))
     cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
     cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %sourcedata root folder 
 else

@@ -10,7 +10,8 @@ if ~isfield(cfg,'SUBJECT')
 elseif ~isfield(cfg,'GROUP_NUM')
 	cfg.GROUP_NUM = [];
 end
-cfg.DATA_TYPE = 'task'; %BIDS data type 'beh' for behavioral and task data. 
+cfg.DATA_TYPE = 'task'; %BIDS data type 'beh' f
+% or behavioral and task data. 
 
 % rectangle for photodiodo synchronization
 cfg.SCREEN_SYNC_RECT = [0 0 20 20]; %rectangle used for screen sync

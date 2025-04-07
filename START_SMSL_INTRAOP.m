@@ -25,14 +25,15 @@ if any(strcmp({'MSI','DESKTOP-T5P1L4S','677-GUE-WL-0010'}, getenv('COMPUTERNAME'
     cfg.PATH_TASK = 'C:\docs\code\Task_SpeechMotorSequenceLearning';
     cfg.PATH_SOURCEDATA = 'C:\Users\amsme\Downloads'; %source data root folder 
     cfg.SCREEN_ID = 1; % preferred screen 
+    
 elseif strcmpi('BML-ALIENWARE',getenv('COMPUTERNAME'))
     cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
     cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %source data root folder 
-    cfg.SCREEN_ID = 3; % preferred screen 
+    cfg.SCREEN_ID = 2; % preferred screen 
 elseif strcmpi('BML-ALIENWARE2',getenv('COMPUTERNAME'))
     cfg.PATH_TASK = 'D:\Task\Task_SpeechMotorSequenceLearning';
     cfg.PATH_SOURCEDATA = 'D:\DBS\sourcedata'; %source data root folder 
-    cfg.SCREEN_ID =2; % preferred screen 
+    cfg.SCREEN_ID = 2; % preferred screen 
 else
     cfg.PATH_TASK = '~/git/Task_SpeechMotorSequenceLearning'; 
     cfg.PATH_SOURCEDATA = '~/Data/DBS/sourcedata'; %source data root folder 
