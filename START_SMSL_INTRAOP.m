@@ -115,9 +115,10 @@ end
 onCleanupTasks = cell(10,1); 
 
 %% Initialize external audio recording from USB interface 
-if isempty(gcp())
+% myCluster = parcluster; delete(myCluster.Jobs)
+if isempty(gcp('nocreate'))
     parpool('local', 1);
-    wait(); 
+    %wait(); 
 end
 
 % Get the worker to construct a data queue on which it can receive messages from the client

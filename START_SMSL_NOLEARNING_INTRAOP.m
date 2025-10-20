@@ -93,7 +93,7 @@ end
 onCleanupTasks = cell(10,1); 
 
 %% Initialize external audio recording from USB interface 
-if isempty(gcp())
+if isempty(gcp('nocreate'))
     parpool('local', 1);
     wait(); 
 end

@@ -171,20 +171,6 @@ disp(cfg)
 % No triggers during training session
 cfg.DIGOUT = 0;
 
-%% Start audio recording
-cfg.AUDIO_FILENAME = [cfg.PATH_AUDIO filesep cfg.BASE_NAME(1:end-1) '.wav'];
-
-% Get the worker to start waiting for messages
-filename = cfg.AUDIO_FILENAME;
-% TODO check that @record_audio is on the path
-if ~(exist('record_audio')==2)
-    error('record_audio() function not found. Add it to the MATLAB path.'); 
-end
-future = parfeval(@record_audio, 1, filename, workerQueueConstant);
-future.Diary
-
-onCleanupTasks{6} = onCleanup(@() send(workerQueueClient, 'stop'));
-
 %% Saving task function in log folder for documentation
 task_function = [pwd filesep cfg.TASK_FUNCTION];
 if ~isfile(task_function)
@@ -193,10 +179,27 @@ if ~isfile(task_function)
 end
 copyfile(task_function,[cfg.PATH_LOG filesep cfg.BASE_NAME 'script.m']);
 
+%% Change folder 
+cd('./scripts');
+
+%% Start audio recording
+cfg.AUDIO_FILENAME = [cfg.PATH_AUDIO filesep cfg.BASE_NAME(1:end-1) '.wav'];
+
+% Get the worker to start waiting for messages
+filename = cfg.AUDIO_FILENAME;
+% TODO check that @record_audio is on the path
+if ~(exist('record_audio_preop')==2)
+    error('record_audio_preop() function not found. Add it to the MATLAB path.'); 
+end
+future = parfeval(@record_audio_preop, 1, filename, workerQueueConstant);
+future.Diary
+
+onCleanupTasks{6} = onCleanup(@() send(workerQueueClient, 'stop'));
+
+
 %% Launching the task
 commandwindow
 try
-  cd('./scripts');
   task_smsl(cfg);
 catch e
 	fprintf('The identifier was:\n%s',e.identifier);
