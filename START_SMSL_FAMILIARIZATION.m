@@ -19,7 +19,7 @@ cfg.SCREEN_SYNC_RECT = [0 0 1 1]; %rectangle used for screen sync
 cfg.SCREEN_SYNC_COLOR = [255 255 255];
 
 % Paths and configurations
-if any(strcmp({'MSI','DESKTOP-T5P1L4S'}, getenv('COMPUTERNAME'))) %% paths for Andrew Meier test computers
+if any(strcmp({'MSI','DESKTOP-T5P1L4S','AMSMEIER'}, getenv('COMPUTERNAME'))) %% paths for Andrew Meier test computers
     cfg.PATH_TASK = 'C:\docs\code\Task_SpeechMotorSequenceLearning';
     cfg.PATH_SOURCEDATA = 'C:\Users\amsme\Downloads'; %source data root folder 
     cfg.SCREEN_ID = 0; % preferred screen 
